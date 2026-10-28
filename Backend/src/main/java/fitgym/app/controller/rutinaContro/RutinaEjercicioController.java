@@ -25,7 +25,7 @@ import fitgym.app.servicio.rutina.RutinaEjercicioServicio;
 
 @RestController
 @RequestMapping("appmovil-gym/rutina/ejercicios")
-@CrossOrigin(value="http://localhost:4200")
+@CrossOrigin(value="http://localhost:3000")
 public class RutinaEjercicioController {
     private static final Logger logger = LoggerFactory.getLogger(RutinaEjercicioController.class);
 

@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
 @RequestMapping("user")
-@CrossOrigin(origins = {"http://localhost:4200"})
+@CrossOrigin(origins = {"http://localhost:3000"})
 @RequiredArgsConstructor
 public class UserController {
 

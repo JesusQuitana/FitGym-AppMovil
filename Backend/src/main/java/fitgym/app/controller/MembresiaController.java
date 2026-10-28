@@ -24,7 +24,7 @@ import fitgym.app.servicio.membresia.MembresiaServicio;
 
 @RestController
 @RequestMapping("appgym-movil")
-@CrossOrigin(value="http://localhost:4200")
+@CrossOrigin(value="http://localhost:3000")
 public class MembresiaController {
     private static final Logger logger = LoggerFactory.getLogger(MembresiaController.class);
 

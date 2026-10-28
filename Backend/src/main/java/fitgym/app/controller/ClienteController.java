@@ -25,7 +25,7 @@ import fitgym.app.servicio.cliente.ClienteServicio;
 
 @RestController
 @RequestMapping("appgym-movil") //http://localhost:3000/appgym-movil
-@CrossOrigin(value="http://localhost:4200") //Puerto por default de Angular
+@CrossOrigin(value="http://localhost:3000") //Puerto por default de Angular
 public class ClienteController {
     private static final Logger logger = LoggerFactory.getLogger(ClienteController.class);
 

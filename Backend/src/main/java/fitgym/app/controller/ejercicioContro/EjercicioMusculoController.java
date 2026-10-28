@@ -24,7 +24,7 @@ import fitgym.app.servicio.ejercicio.EjercicioMusculoServicio;
 
 @RestController
 @RequestMapping("/appgym-movil/ejercicios/musculos")
-@CrossOrigin(value="http://localhost:4200")
+@CrossOrigin(value="http://localhost:3000")
 public class EjercicioMusculoController {
     private static final Logger logger = LoggerFactory.getLogger(EjercicioController.class);
 

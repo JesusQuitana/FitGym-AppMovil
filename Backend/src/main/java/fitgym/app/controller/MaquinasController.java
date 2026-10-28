@@ -23,7 +23,7 @@ import fitgym.app.servicio.maquinas.MaquinaServicio;
 
 @RestController
 @RequestMapping("appgym-movil")
-@CrossOrigin(value="http://localhost:4200")
+@CrossOrigin(value="http://localhost:3000")
 public class MaquinasController {
 
     private static final Logger logger = LoggerFactory.getLogger(ClienteController.class);
