@@ -3,10 +3,12 @@ package fitgym.app.servicio.ejercicio;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import fitgym.app.model.Ejercicio_Musculo;
 import fitgym.app.repositorio.ejercicioRepo.EjercicioMusculoRepositorio;
 
+@Service
 public class EjercicioMusculoServicio implements IEjercicioMusculoServicio{
 
     @Autowired

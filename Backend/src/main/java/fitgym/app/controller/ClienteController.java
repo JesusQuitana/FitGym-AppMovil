@@ -68,6 +68,7 @@ public class ClienteController {
         clienteActualizar.setCorreo(cliente.getCorreo());
         clienteActualizar.setTelefono(cliente.getTelefono());
         clienteActualizar.setMembresia_id(cliente.getMembresia_id());
+        clienteActualizar.setFechaPago(cliente.getFechaPago());
         //Guardar
         this.clienteServicio.saveCliente(clienteActualizar);
         return ResponseEntity.ok(clienteActualizar);

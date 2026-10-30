@@ -2,6 +2,7 @@ package fitgym.app.servicio.musclegroup;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import fitgym.app.repositorio.MuscleGroupRepository;
 import fitgym.app.model.MuscleGroup;
@@ -9,6 +10,7 @@ import fitgym.app.model.MuscleGroup;
 @Service 
 public class MuscleGroupServicio implements IMuscleGroupServicio{
 
+    @Autowired
     private MuscleGroupRepository muscleGroupRepository;
 
     @Override

@@ -1,9 +1,11 @@
 package fitgym.app.servicio.rutina;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import fitgym.app.model.Rutina;
 import fitgym.app.repositorio.rutinaRepo.RutinaRepositorio;
 
+@Service
 public class RutinaServicio implements IRutinaServicio{
 
     @Autowired
