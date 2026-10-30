@@ -43,6 +43,9 @@ InputDecoration fitInput(String label, IconData icon, {String? hint}) => InputDe
       ),
     );
 
+/// Permite mostrar mensajes aunque la pantalla que los originó ya se cerró.
+final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 void showError(BuildContext context, Object error) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
     content: Text('$error'),
@@ -317,6 +320,22 @@ class _MembresiaOpcion extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Logo en una línea para la barra superior.
+class FitLogoInline extends StatelessWidget {
+  const FitLogoInline({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Text.rich(
+      TextSpan(children: [
+        TextSpan(text: 'Fit'),
+        TextSpan(text: 'Gym', style: TextStyle(color: FitColors.primary)),
+      ]),
+      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
     );
   }
 }

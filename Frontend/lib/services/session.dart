@@ -6,6 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import '../models/cliente.dart';
 
+/// Dónde entrena hoy la persona. Se elige en Inicio con un toque y cambia
+/// qué rutinas y ejercicios se sugieren; no cierra ni abre sesiones.
+enum LugarHoy { gimnasio, casa }
+
 /// Configuración y sesión persistidas en el teléfono. El cliente autenticado
 /// se guarda en caché para poder mostrar el QR aun sin cobertura en recepción.
 ///
@@ -21,6 +25,14 @@ class Session {
   static const _kRelojOffset = 'reloj_offset_ms';
   static const _kCodigo = 'codigo';
   static const _kTotp = 'totp_secret';
+  static const _kBienvenida = 'bienvenida_hecha';
+  static const _kLugarHoy = 'lugar_hoy';
+
+  /// Clave de versiones anteriores, que trataban gimnasio y casa como modos.
+  static const _kModoAnterior = 'modo_uso';
+
+  /// URL que la app usaba por defecto cuando el backend escuchaba en el 3000.
+  static const _urlAnterior = 'http://10.0.2.2:3000';
 
   late SharedPreferences _prefs;
   final _seguro = const FlutterSecureStorage();
@@ -41,12 +53,53 @@ class Session {
   /// cada vez que se entra al módulo (el backend lo emite por 24 minutos).
   String? adminToken;
 
+  /// Credenciales de recepción solo en memoria, para renovar el token sin
+  /// interrumpir. Se borran al salir del módulo (ver cerrarAdmin).
+  String? adminUsuario;
+  String? adminPassword;
+  DateTime? adminTokenDesde;
+
+  void cerrarAdmin() {
+    adminToken = null;
+    adminUsuario = null;
+    adminPassword = null;
+    adminTokenDesde = null;
+  }
+
+  /// Si ya pasó la bienvenida (vinculó su gimnasio o armó su plan).
+  bool bienvenidaHecha = false;
+
+  /// Dónde entrena hoy; se recuerda la última elección.
+  LugarHoy lugarHoy = LugarHoy.gimnasio;
+
+  /// Si vinculó un gimnasio con FitGym (inició sesión como afiliado).
+  bool get conGimnasio => cliente != null;
+
+  Future<void> marcarBienvenidaHecha() async {
+    bienvenidaHecha = true;
+    await _prefs.setBool(_kBienvenida, true);
+  }
+
+  Future<void> saveLugarHoy(LugarHoy l) async {
+    lugarHoy = l;
+    await _prefs.setString(_kLugarHoy, l.name);
+  }
+
   /// Hora corregida con la del servidor; es la que se usa para el TOTP.
   DateTime get ahora => DateTime.now().add(relojOffset);
 
   Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
     baseUrl = _prefs.getString(_kBaseUrl) ?? AppConfig.defaultBaseUrl;
+    // El backend pasó del puerto 3000 al 8080: se actualiza la URL por defecto guardada.
+    if (baseUrl == _urlAnterior) baseUrl = AppConfig.defaultBaseUrl;
+    // Quien ya eligió un modo en versiones anteriores no ve la bienvenida otra vez.
+    bienvenidaHecha = _prefs.getBool(_kBienvenida) ?? _prefs.containsKey(_kModoAnterior);
+    lugarHoy = LugarHoy.values.where((l) => l.name == _prefs.getString(_kLugarHoy)).firstOrNull ??
+        (_prefs.getString(_kModoAnterior) == 'personal' ? LugarHoy.casa : LugarHoy.gimnasio);
+    // Se parte de cero: lo que no esté guardado no debe quedar de antes.
+    cliente = null;
+    totpSecret = null;
     modoDemo = _prefs.getBool(_kDemo) ?? AppConfig.defaultModoDemo;
     relojOffset = Duration(milliseconds: _prefs.getInt(_kRelojOffset) ?? 0);
     final raw = _prefs.getString(_kCliente);

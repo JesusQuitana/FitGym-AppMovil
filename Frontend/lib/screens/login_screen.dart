@@ -3,13 +3,18 @@ import 'package:flutter/services.dart';
 
 import '../config.dart';
 import '../services/api_service.dart';
+import '../services/recordatorios.dart';
 import '../services/session.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'admin/admin_home_screen.dart';
-import 'home_screen.dart';
+import 'inicio.dart';
 import 'settings_screen.dart';
 
+/// Vincular el gimnasio: el afiliado ingresa una sola vez con su correo y el
+/// código de 4 dígitos que le dio recepción. La sesión queda guardada hasta
+/// que la desvincule desde Perfil. Al terminar vuelve a la pantalla anterior
+/// (o entra a la app si viene de la bienvenida).
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -42,8 +47,15 @@ class _LoginScreenState extends State<LoginScreen> {
         totpSecret: sesion.totpSecret,
         relojOffset: sesion.relojOffset,
       );
+      Recordatorios.programar(sesion.cliente);
+      await Session.instance.marcarBienvenidaHecha();
+      await Session.instance.saveLugarHoy(LugarHoy.gimnasio);
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('¡Listo, ${sesion.cliente.nombre}! Tu gimnasio quedó vinculado.'),
+        backgroundColor: FitColors.ok,
+      ));
+      await irAlInicio(context);
     } catch (e) {
       if (mounted) showError(context, e);
     } finally {
@@ -51,20 +63,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _accesoAdmin() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => const _AdminLoginDialog(),
-    );
-    if (ok == true && mounted) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: const Text('Vincular mi gimnasio'),
         actions: [
           IconButton(
             tooltip: 'Ajustes de conexión',
@@ -84,15 +87,17 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Center(child: FitLogo(size: 80)),
+                  const SizedBox(height: 8),
+                  const Center(child: FitLogo(size: 72)),
                   const SizedBox(height: 28),
                   const Text(
-                    'Bienvenido',
+                    'Tu gimnasio usa FitGym',
                     style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Ingresa con tu correo y el código de 4 dígitos que te entregó recepción para obtener tu pase QR.',
+                    'Ingresa tu correo y el código de 4 dígitos que te entregó recepción. '
+                    'Solo lo haces una vez: la app recuerda tu pase y tus rutinas del gimnasio.',
                     style: TextStyle(color: FitColors.textMuted, height: 1.4),
                   ),
                   const SizedBox(height: 24),
@@ -142,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               height: 22,
                               child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                             )
-                          : const Text('Ingresar'),
+                          : const Text('Vincular'),
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -163,10 +168,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   const SizedBox(height: 8),
-                  TextButton.icon(
-                    onPressed: _accesoAdmin,
-                    icon: const Icon(Icons.admin_panel_settings_outlined),
-                    label: const Text('Soy administrador'),
+                  const Text(
+                    '¿No tienes código? Pídelo en la recepción de tu gimnasio.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: FitColors.textMuted, fontSize: 13),
                   ),
                 ],
               ),
@@ -175,6 +180,15 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+}
+
+/// Acceso de recepción: pide usuario y contraseña (rol ADMIN) y abre el
+/// módulo de recepción. Se llama desde Perfil y desde la bienvenida.
+Future<void> abrirAccesoRecepcion(BuildContext context) async {
+  final ok = await showDialog<bool>(context: context, builder: (_) => const _AdminLoginDialog());
+  if (ok == true && context.mounted) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
   }
 }
 

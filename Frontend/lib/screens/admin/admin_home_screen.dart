@@ -9,8 +9,8 @@ import '../../widgets/common.dart';
 import 'cliente_detalle_screen.dart';
 import 'escaner_screen.dart';
 import 'maquinas_admin_screen.dart';
-import 'musculos_admin_screen.dart';
 import 'registro_cliente_screen.dart';
+import 'rutinas_gym_admin_screen.dart';
 
 /// Módulo administrativo de recepción: consulta (GET /clientes, GET /buscar/{id})
 /// y alta de clientes (POST /agregar).
@@ -37,7 +37,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   @override
   void dispose() {
     // Al salir de recepción se descarta el token de administrador.
-    Session.instance.adminToken = null;
+    Session.instance.cerrarAdmin();
     super.dispose();
   }
 
@@ -193,10 +193,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 ),
                 const SizedBox(width: 10),
                 _Acceso(
-                  icon: Icons.accessibility_new,
-                  label: 'Músculos',
+                  icon: Icons.event_note_outlined,
+                  label: 'Rutinas',
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const MusculosAdminScreen()),
+                    MaterialPageRoute(builder: (_) => const RutinasGymAdminScreen()),
                   ),
                 ),
               ],

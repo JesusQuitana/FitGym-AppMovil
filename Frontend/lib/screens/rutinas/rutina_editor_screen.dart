@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../models/maquina.dart';
 import '../../models/rutina.dart';
-import '../../services/api_service.dart';
 import '../../theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/como_se_hace.dart';
 import '../../widgets/fitness.dart';
 
-/// Crea o edita una rutina. Devuelve la rutina con Navigator.pop.
+/// Crea o edita una rutina propia. Devuelve la rutina con Navigator.pop.
 class RutinaEditorScreen extends StatefulWidget {
-  const RutinaEditorScreen({super.key, this.rutina});
+  const RutinaEditorScreen({super.key, this.rutina, required this.catalogo});
   final Rutina? rutina;
+
+  /// Ejercicios que se pueden agregar (gimnasio, máquinas o catálogo personal).
+  final Future<List<OpcionEjercicio>> Function() catalogo;
 
   @override
   State<RutinaEditorScreen> createState() => _RutinaEditorScreenState();
@@ -28,15 +30,16 @@ class _RutinaEditorScreenState extends State<RutinaEditorScreen> {
   }
 
   Future<void> _agregar() async {
-    final maquina = await showModalBottomSheet<Maquina>(
+    final opcion = await showModalBottomSheet<OpcionEjercicio>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: FitColors.surface,
+      backgroundColor: FitColors.background,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => const _SelectorMaquina(),
+      builder: (_) => SelectorEjercicio(catalogo: widget.catalogo),
     );
-    if (maquina == null || !mounted) return;
-    final e = await _configurar(EjercicioRutina.deMaquina(maquina));
+    if (opcion == null || !mounted) return;
+    final base = EjercicioRutina.deOpcion(opcion);
+    final e = await _configurar(base.porTiempo ? base.copyWith(repeticiones: 40) : base);
     if (e != null) setState(() => _ejercicios.add(e));
   }
 
@@ -45,10 +48,7 @@ class _RutinaEditorScreenState extends State<RutinaEditorScreen> {
     if (e != null) setState(() => _ejercicios[i] = e);
   }
 
-  Future<EjercicioRutina?> _configurar(EjercicioRutina e) => showDialog<EjercicioRutina>(
-        context: context,
-        builder: (_) => _ConfigEjercicio(ejercicio: e),
-      );
+  Future<EjercicioRutina?> _configurar(EjercicioRutina e) => configurarEjercicio(context, e);
 
   void _guardar() {
     final nombre = _nombre.text.trim();
@@ -107,10 +107,7 @@ class _RutinaEditorScreenState extends State<RutinaEditorScreen> {
           Text('Ejercicios (${_ejercicios.length})', style: const TextStyle(color: FitColors.textMuted, fontSize: 13)),
           const SizedBox(height: 8),
           if (_ejercicios.isEmpty)
-            const VacioMensaje(
-              icon: Icons.fitness_center,
-              texto: 'Agrega ejercicios eligiendo las máquinas del gimnasio.',
-            )
+            const VacioMensaje(icon: Icons.fitness_center, texto: 'Agrega ejercicios desde el catálogo.')
           else
             ReorderableListView(
               shrinkWrap: true,
@@ -120,7 +117,7 @@ class _RutinaEditorScreenState extends State<RutinaEditorScreen> {
               children: [
                 for (var i = 0; i < _ejercicios.length; i++)
                   Padding(
-                    key: ValueKey('${_ejercicios[i].maquinaId}-$i'),
+                    key: ValueKey('${_ejercicios[i].nombre}-$i'),
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Material(
                       color: FitColors.surface,
@@ -132,7 +129,7 @@ class _RutinaEditorScreenState extends State<RutinaEditorScreen> {
                           index: i,
                           child: const Icon(Icons.drag_indicator, color: FitColors.textMuted),
                         ),
-                        title: Text(_ejercicios[i].maquina, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        title: Text(_ejercicios[i].nombre, style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text('${_ejercicios[i].musculo} · ${_ejercicios[i].resumen}',
                             style: const TextStyle(color: FitColors.textMuted)),
                         trailing: IconButton(
@@ -151,23 +148,19 @@ class _RutinaEditorScreenState extends State<RutinaEditorScreen> {
   }
 }
 
-/// Lista de máquinas del gimnasio para elegir un ejercicio.
-class _SelectorMaquina extends StatefulWidget {
-  const _SelectorMaquina();
+/// Lista de ejercicios para elegir uno, filtrable por grupo muscular.
+class SelectorEjercicio extends StatefulWidget {
+  const SelectorEjercicio({super.key, required this.catalogo, this.titulo = 'Elige un ejercicio'});
+  final Future<List<OpcionEjercicio>> Function() catalogo;
+  final String titulo;
 
   @override
-  State<_SelectorMaquina> createState() => _SelectorMaquinaState();
+  State<SelectorEjercicio> createState() => _SelectorEjercicioState();
 }
 
-class _SelectorMaquinaState extends State<_SelectorMaquina> {
-  late final Future<(List<Musculo>, List<Maquina>)> _datos = _cargar();
-  int? _musculoId;
-
-  Future<(List<Musculo>, List<Maquina>)> _cargar() async {
-    final api = ApiService.instance;
-    final r = await Future.wait([api.listarMusculos(), api.listarMaquinas()]);
-    return (r[0] as List<Musculo>, r[1] as List<Maquina>);
-  }
+class _SelectorEjercicioState extends State<SelectorEjercicio> {
+  late final Future<List<OpcionEjercicio>> _datos = widget.catalogo();
+  String? _musculo;
 
   @override
   Widget build(BuildContext context) {
@@ -178,34 +171,47 @@ class _SelectorMaquinaState extends State<_SelectorMaquina> {
         child: FutureBuilder(
           future: _datos,
           builder: (context, snap) {
-            if (snap.hasError) {
-              return VacioMensaje(icon: Icons.cloud_off, texto: '${snap.error}');
-            }
+            if (snap.hasError) return VacioMensaje(icon: Icons.cloud_off, texto: '${snap.error}');
             if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-            final (musculos, maquinas) = snap.data!;
-            final visibles = maquinas.where((m) => _musculoId == null || m.musculo?.id == _musculoId).toList();
+            final opciones = snap.data!;
+            final musculos = opciones.map((o) => o.musculo).where((m) => m.isNotEmpty).toSet().toList()..sort();
+            final visibles = opciones.where((o) => _musculo == null || o.musculo == _musculo).toList();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Elige una máquina', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                Text(widget.titulo, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 12),
-                FiltroMusculos(
-                  musculos: musculos,
-                  seleccionado: _musculoId,
-                  onChanged: (id) => setState(() => _musculoId = id),
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: ListView(
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
                     children: [
-                      for (final m in visibles)
-                        MaquinaTile(
-                          maquina: m,
-                          onTap: () => Navigator.pop(context, m),
-                          trailing: const Icon(Icons.add_circle_outline, color: FitColors.primary),
+                      for (final m in [null, ...musculos])
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(m ?? 'Todos'),
+                            selected: _musculo == m,
+                            selectedColor: (m == null ? FitColors.primary : colorMusculo(m)).withAlpha(60),
+                            onSelected: (_) => setState(() => _musculo = m),
+                          ),
                         ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: visibles.isEmpty
+                      ? const VacioMensaje(icon: Icons.search_off, texto: 'No hay ejercicios disponibles.')
+                      : ListView(
+                          children: [
+                            for (final o in visibles)
+                              OpcionEjercicioTile(
+                                opcion: o,
+                                onTap: () => Navigator.pop(context, o),
+                                trailing: const Icon(Icons.add_circle_outline, color: FitColors.primary),
+                              ),
+                          ],
+                        ),
                 ),
               ],
             );
@@ -216,10 +222,75 @@ class _SelectorMaquinaState extends State<_SelectorMaquina> {
   }
 }
 
-/// Series, repeticiones y peso de un ejercicio.
+/// Tarjeta de un ejercicio del catálogo.
+class OpcionEjercicioTile extends StatelessWidget {
+  const OpcionEjercicioTile({super.key, required this.opcion, this.onTap, this.trailing});
+  final OpcionEjercicio opcion;
+  final VoidCallback? onTap;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: FitColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                MiniaturaEjercicio(musculo: opcion.musculo, imagen: opcion.imagen, size: 56),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(opcion.nombre, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                      if (opcion.descripcion.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(opcion.descripcion.replaceAll(RegExp(r'\s+'), ' '),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: FitColors.textMuted, fontSize: 13)),
+                      ],
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          MusculoChip(opcion.musculo),
+                          if (opcion.detalle.isNotEmpty)
+                            Text(opcion.detalle, style: const TextStyle(color: FitColors.textMuted, fontSize: 12)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (trailing != null) trailing!,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pide series, repeticiones (o segundos) y, si [conPeso], el peso.
+Future<EjercicioRutina?> configurarEjercicio(BuildContext context, EjercicioRutina e, {bool conPeso = true}) =>
+    showDialog<EjercicioRutina>(context: context, builder: (_) => _ConfigEjercicio(ejercicio: e, conPeso: conPeso));
+
 class _ConfigEjercicio extends StatefulWidget {
-  const _ConfigEjercicio({required this.ejercicio});
+  const _ConfigEjercicio({required this.ejercicio, required this.conPeso});
   final EjercicioRutina ejercicio;
+
+  /// Las rutinas del gimnasio no guardan peso (el backend no tiene ese campo).
+  final bool conPeso;
 
   @override
   State<_ConfigEjercicio> createState() => _ConfigEjercicioState();
@@ -243,34 +314,42 @@ class _ConfigEjercicioState extends State<_ConfigEjercicio> {
     final e = widget.ejercicio;
     return AlertDialog(
       backgroundColor: FitColors.surface,
-      title: Text(e.maquina),
+      title: Text(e.nombre),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _Contador(label: 'Series', valor: _series, min: 1, max: 10, onChanged: (v) => setState(() => _series = v)),
-          _Contador(label: 'Repeticiones', valor: _reps, min: 1, max: 50, onChanged: (v) => setState(() => _reps = v)),
+          if (e.porTiempo)
+            _Contador(
+              label: 'Segundos',
+              valor: _reps,
+              min: 10,
+              max: 300,
+              paso: 5,
+              onChanged: (v) => setState(() => _reps = v),
+            )
+          else
+            _Contador(label: 'Repeticiones', valor: _reps, min: 1, max: 50, onChanged: (v) => setState(() => _reps = v)),
+          if (widget.conPeso) ...[
           const SizedBox(height: 8),
           TextField(
             controller: _peso,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: fitInput('Peso (kg, opcional)', Icons.monitor_weight_outlined),
           ),
+          ],
         ],
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(
-          onPressed: () => Navigator.pop(
-            context,
-            EjercicioRutina(
-              maquinaId: e.maquinaId,
-              maquina: e.maquina,
-              musculo: e.musculo,
-              series: _series,
-              repeticiones: _reps,
-              pesoKg: double.tryParse(_peso.text.replaceAll(',', '.')),
-            ),
-          ),
+          onPressed: () {
+            final peso = double.tryParse(_peso.text.replaceAll(',', '.'));
+            Navigator.pop(
+              context,
+              e.copyWith(series: _series, repeticiones: _reps, pesoKg: peso, quitarPeso: peso == null),
+            );
+          },
           child: const Text('Listo'),
         ),
       ],
@@ -279,11 +358,19 @@ class _ConfigEjercicioState extends State<_ConfigEjercicio> {
 }
 
 class _Contador extends StatelessWidget {
-  const _Contador({required this.label, required this.valor, required this.min, required this.max, required this.onChanged});
+  const _Contador({
+    required this.label,
+    required this.valor,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    this.paso = 1,
+  });
   final String label;
   final int valor;
   final int min;
   final int max;
+  final int paso;
   final ValueChanged<int> onChanged;
 
   @override
@@ -292,16 +379,16 @@ class _Contador extends StatelessWidget {
       children: [
         Expanded(child: Text(label)),
         IconButton.filledTonal(
-          onPressed: valor > min ? () => onChanged(valor - 1) : null,
+          onPressed: valor > min ? () => onChanged((valor - paso).clamp(min, max)) : null,
           icon: const Icon(Icons.remove),
         ),
         SizedBox(
-          width: 44,
+          width: 48,
           child: Text('$valor',
               textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
         ),
         IconButton.filledTonal(
-          onPressed: valor < max ? () => onChanged(valor + 1) : null,
+          onPressed: valor < max ? () => onChanged((valor + paso).clamp(min, max)) : null,
           icon: const Icon(Icons.add),
         ),
       ],

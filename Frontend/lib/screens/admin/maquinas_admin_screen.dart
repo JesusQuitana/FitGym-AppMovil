@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/maquina.dart';
 import '../../services/api_service.dart';
+import '../../services/gym_rutinas.dart';
 import '../../theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/fitness.dart';
@@ -34,7 +35,8 @@ class _MaquinasAdminScreenState extends State<MaquinasAdminScreen> {
     });
     try {
       final api = ApiService.instance;
-      final r = await Future.wait([api.listarMusculos(), api.listarMaquinas()]);
+      // Los grupos musculares son las categorías de wger y se crean solos.
+      final r = await Future.wait([GymRutinas.asegurarMusculosBase(), api.listarMaquinas()]);
       if (!mounted) return;
       setState(() {
         _musculos = r[0] as List<Musculo>;
@@ -49,7 +51,7 @@ class _MaquinasAdminScreenState extends State<MaquinasAdminScreen> {
 
   Future<void> _editar([Maquina? actual]) async {
     if (_musculos.isEmpty) {
-      showError(context, 'Primero crea al menos un grupo muscular.');
+      showError(context, 'No se pudieron cargar los grupos musculares. Reintenta.');
       return;
     }
     final guardada = await showModalBottomSheet<bool>(

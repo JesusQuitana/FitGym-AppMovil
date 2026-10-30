@@ -5,7 +5,7 @@ import '../services/session.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
-/// Ajustes de conexión con el backend Spring Boot.
+/// Ajustes de conexión con el backend Spring Boot y modo de uso de la app.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -70,17 +70,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 18),
             TextField(
               controller: _url,
-              enabled: !_demo,
               onChanged: (_) => _guardar(),
               keyboardType: TextInputType.url,
               autocorrect: false,
               decoration: fitInput('URL del servidor (API REST)', Icons.dns_outlined,
-                  hint: 'http://192.168.1.50:3000'),
+                  hint: 'http://192.168.1.50:8080'),
             ),
             const SizedBox(height: 10),
             const Text(
-              '• Emulador Android: http://10.0.2.2:3000\n'
-              '• Teléfono físico: http://<IP de la PC en la red Wi-Fi>:3000',
+              '• Emulador Android: http://10.0.2.2:8080\n'
+              '• Teléfono físico: http://<IP de la PC en la red Wi-Fi>:8080\n'
+              '• Con el modo demo activo esta URL no se usa.',
               style: TextStyle(color: FitColors.textMuted, height: 1.6, fontSize: 13),
             ),
             const SizedBox(height: 24),

@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../config.dart';
 import '../models/cliente.dart';
 import '../models/maquina.dart';
+import '../models/rutina_gym.dart';
 import 'session.dart';
 import 'totp.dart';
 
@@ -33,6 +34,10 @@ class ApiException implements Exception {
 ///   PUT  /appgym-movil/cliente/editar/{id}    → edición           (JWT)
 ///   GET  /appgym-movil/MuscleGroups, /maquinas → catálogo         (público)
 ///   POST/PUT/DELETE /appgym-movil/MuscleGroup/…, /maquina/…       (JWT)
+///   GET  /appgym-movil/ejercicioss, /ejercicios/musculos, /rutinas (público)
+///   GET  /appmovil-gym/rutina/ejercicios                           (público)
+///   POST/PUT/DELETE de las cuatro anteriores                       (JWT)
+/// Las rutas que no siguen el patrón están en AppConfig.
 class ApiService {
   ApiService._();
   static final ApiService instance = ApiService._();
@@ -75,7 +80,7 @@ class ApiService {
     if (_session.modoDemo) return _MockDb.agregar(c);
     _requiereAdmin();
 
-    final reg = await _send(() => http.post(
+    final reg = await _sendAdmin(() => http.post(
           _uri('/auth/register', api: false),
           headers: _headers,
           body: jsonEncode({'username': c.correo, 'password': c.codigo}),
@@ -92,7 +97,7 @@ class ApiService {
     // con role null) y devuelve 502.
     final body = c.copyWith(userId: userId).toApiJson()
       ..['user_id'] = {'id': userId, 'username': c.correo, 'role': 'USER'};
-    final res = await _send(() => http.post(
+    final res = await _sendAdmin(() => http.post(
           _uri('/cliente/agregar'),
           headers: _headers,
           body: jsonEncode(body),
@@ -106,7 +111,7 @@ class ApiService {
   Future<Cliente> actualizarCliente(Cliente c) async {
     if (_session.modoDemo) return _MockDb.actualizar(c);
     _requiereAdmin();
-    final res = await _send(() => http.put(
+    final res = await _sendAdmin(() => http.put(
           _uri('/cliente/editar/${c.id}'),
           headers: _headers,
           body: jsonEncode(c.toApiJson()),
@@ -169,6 +174,37 @@ class ApiService {
     final rol = (_decode(userRes) as Map)['role'];
     if (rol != 'ADMIN') throw ApiException('Este usuario no tiene rol de administrador.');
     _session.adminToken = '${data['token']}';
+    _session.adminUsuario = usuario;
+    _session.adminPassword = password;
+    _session.adminTokenDesde = DateTime.now();
+  }
+
+  /// El backend emite el token por 24 minutos: se renueva a los 20.
+  static const _vidaToken = Duration(minutes: 20);
+
+  /// Envía una petición de recepción manteniendo viva la sesión: renueva el
+  /// token antes de que venza y, si aun así el backend lo rechaza (401/403),
+  /// vuelve a iniciar sesión y repite la petición una vez.
+  Future<http.Response> _sendAdmin(Future<http.Response> Function() call) async {
+    final puedeRenovar = !_session.modoDemo && _session.adminPassword != null;
+    final desde = _session.adminTokenDesde;
+    if (puedeRenovar && desde != null && DateTime.now().difference(desde) > _vidaToken) {
+      await _renovarAdmin();
+    }
+    var res = await _send(call);
+    if (puedeRenovar && (res.statusCode == 401 || res.statusCode == 403)) {
+      await _renovarAdmin();
+      res = await _send(call);
+    }
+    return res;
+  }
+
+  Future<void> _renovarAdmin() async {
+    try {
+      await loginAdmin(_session.adminUsuario!, _session.adminPassword!);
+    } on ApiException {
+      throw ApiException('La sesión de recepción venció y no se pudo renovar. Vuelve a entrar.');
+    }
   }
 
   /// Valida en la entrada el QR del afiliado.
@@ -226,7 +262,7 @@ class ApiService {
   Future<Musculo> guardarMusculo(Musculo m) async {
     if (_session.modoDemo) return _MockDb.guardarMusculo(m);
     _requiereAdmin();
-    final res = await _send(() => m.id == null
+    final res = await _sendAdmin(() => m.id == null
         ? http.post(_uri('/MuscleGroup/agregar'), headers: _headers, body: jsonEncode(m.toApiJson()))
         : http.put(_uri('/MuscleGroup/editar/${m.id}'), headers: _headers, body: jsonEncode(m.toApiJson())));
     _check(res);
@@ -236,7 +272,7 @@ class ApiService {
   Future<void> eliminarMusculo(int id) async {
     if (_session.modoDemo) return _MockDb.eliminarMusculo(id);
     _requiereAdmin();
-    final res = await _send(() => http.delete(_uri('/MuscleGroup/delete/$id'), headers: _headers));
+    final res = await _sendAdmin(() => http.delete(_uri('/MuscleGroup/delete/$id'), headers: _headers));
     // Si alguna máquina lo usa, la llave foránea impide borrarlo y el backend responde 502.
     if (res.statusCode >= 500) {
       throw ApiException('No se puede eliminar: hay máquinas asociadas a este grupo muscular.');
@@ -254,17 +290,139 @@ class ApiService {
   Future<Maquina> guardarMaquina(Maquina m) async {
     if (_session.modoDemo) return _MockDb.guardarMaquina(m);
     _requiereAdmin();
-    final res = await _send(() => m.id == null
+    final res = await _sendAdmin(() => m.id == null
         ? http.post(_uri('/maquina/agregar'), headers: _headers, body: jsonEncode(m.toApiJson()))
         : http.put(_uri('/maquina/editar/${m.id}'), headers: _headers, body: jsonEncode(m.toApiJson())));
     _check(res);
     return Maquina.fromJson(Map<String, dynamic>.from(_decode(res) as Map));
   }
 
+  // --------------------------------------------- ejercicios y rutinas gym
+
+  /// Rutas sin el prefijo /appgym-movil (RutinaEjercicioController).
+  Uri _uriRutinaEjercicios(String path) {
+    final base = _session.baseUrl.replaceAll(RegExp(r'/+$'), '');
+    return Uri.parse('$base${AppConfig.rutaRutinaEjercicios}$path');
+  }
+
+  Future<List<T>> _listar<T>(Uri uri, T Function(Map<String, dynamic>) fromJson) async {
+    final res = await _send(() => http.get(uri, headers: _headers));
+    _check(res);
+    return (_decode(res) as List).map((e) => fromJson(Map<String, dynamic>.from(e as Map))).toList();
+  }
+
+  Future<T> _guardar<T>(Uri crear, Uri editar, bool nuevo, Map<String, dynamic> body,
+      T Function(Map<String, dynamic>) fromJson) async {
+    _requiereAdmin();
+    final res = await _sendAdmin(() => nuevo
+        ? http.post(crear, headers: _headers, body: jsonEncode(body))
+        : http.put(editar, headers: _headers, body: jsonEncode(body)));
+    _check(res);
+    return fromJson(Map<String, dynamic>.from(_decode(res) as Map));
+  }
+
+  Future<void> _eliminar(Uri uri, String mensajeSiEnUso) async {
+    _requiereAdmin();
+    final res = await _sendAdmin(() => http.delete(uri, headers: _headers));
+    // Una llave foránea que impide borrar llega como 502 (GlobalExceptionHandler).
+    if (res.statusCode >= 500) throw ApiException(mensajeSiEnUso);
+    _check(res);
+  }
+
+  Future<List<EjercicioGym>> listarEjercicios() async {
+    if (_session.modoDemo) return _MockDb.listarDe(_MockDb.ejercicios);
+    return _listar(_uri(AppConfig.rutaListarEjercicios), EjercicioGym.fromJson);
+  }
+
+  Future<EjercicioGym> guardarEjercicio(EjercicioGym e) async {
+    if (_session.modoDemo) {
+      return _MockDb.guardar(_MockDb.ejercicios, e, e.id,
+          (id) => EjercicioGym(id: id, nombre: e.nombre, descripcion: e.descripcion), (x) => x.id);
+    }
+    return _guardar(_uri('/ejercicios/agregar'), _uri('/ejercicios/editar/${e.id}'), e.id == null, e.toApiJson(),
+        EjercicioGym.fromJson);
+  }
+
+  Future<void> eliminarEjercicio(int id) async {
+    const msg = 'No se puede eliminar: el ejercicio se usa en alguna rutina.';
+    if (_session.modoDemo) {
+      if (_MockDb.rutinaEjercicios.any((x) => x.ejercicioId == id)) throw ApiException(msg);
+      return _MockDb.eliminar(_MockDb.ejercicios, id, (x) => x.id);
+    }
+    return _eliminar(_uri('/ejercicios/delete/$id'), msg);
+  }
+
+  Future<List<EjercicioMusculo>> listarEjercicioMusculos() async {
+    if (_session.modoDemo) return _MockDb.listarDe(_MockDb.ejercicioMusculos);
+    return _listar(_uri('/ejercicios/musculos'), EjercicioMusculo.fromJson);
+  }
+
+  Future<EjercicioMusculo> guardarEjercicioMusculo(EjercicioMusculo v) async {
+    if (_session.modoDemo) {
+      return _MockDb.guardar(_MockDb.ejercicioMusculos, v, v.id,
+          (id) => EjercicioMusculo(id: id, ejercicioId: v.ejercicioId, musculo: v.musculo, maquina: v.maquina),
+          (x) => x.id);
+    }
+    // La respuesta trae el músculo y la máquina solo con su id; se conservan
+    // los objetos completos que ya tenía la app.
+    final r = await _guardar(_uri('/ejercicios/musculos/agregar'), _uri('/ejercicios/musculos/editar/${v.id}'),
+        v.id == null, v.toApiJson(), EjercicioMusculo.fromJson);
+    return EjercicioMusculo(id: r.id, ejercicioId: v.ejercicioId, musculo: v.musculo, maquina: v.maquina);
+  }
+
+  Future<void> eliminarEjercicioMusculo(int id) async {
+    if (_session.modoDemo) return _MockDb.eliminar(_MockDb.ejercicioMusculos, id, (x) => x.id);
+    return _eliminar(_uri('/ejercicios/musculos/delete/$id'), 'No se pudo eliminar el vínculo del ejercicio.');
+  }
+
+  Future<List<RutinaGym>> listarRutinasGym() async {
+    if (_session.modoDemo) return _MockDb.listarDe(_MockDb.rutinas);
+    return _listar(_uri('/rutinas'), RutinaGym.fromJson);
+  }
+
+  Future<RutinaGym> guardarRutinaGym(RutinaGym r) async {
+    if (_session.modoDemo) {
+      return _MockDb.guardar(_MockDb.rutinas, r, r.id,
+          (id) => RutinaGym(id: id, diaSemana: r.diaSemana, clienteId: r.clienteId, clienteNombre: r.clienteNombre),
+          (x) => x.id);
+    }
+    return _guardar(_uri('/rutina/agregar'), _uri('/rutina/editar/${r.id}'), r.id == null, r.toApiJson(),
+        RutinaGym.fromJson);
+  }
+
+  Future<void> eliminarRutinaGym(int id) async {
+    if (_session.modoDemo) return _MockDb.eliminar(_MockDb.rutinas, id, (x) => x.id);
+    return _eliminar(_uri('/rutina/delete/$id'), 'No se puede eliminar: la rutina todavía tiene ejercicios.');
+  }
+
+  Future<List<RutinaEjercicioGym>> listarRutinaEjercicios() async {
+    if (_session.modoDemo) return _MockDb.listarDe(_MockDb.rutinaEjercicios);
+    return _listar(_uriRutinaEjercicios(''), RutinaEjercicioGym.fromJson);
+  }
+
+  Future<RutinaEjercicioGym> guardarRutinaEjercicio(RutinaEjercicioGym x) async {
+    if (_session.modoDemo) {
+      return _MockDb.guardar(
+          _MockDb.rutinaEjercicios,
+          x,
+          x.id,
+          (id) => RutinaEjercicioGym(
+              id: id, rutinaId: x.rutinaId, ejercicioId: x.ejercicioId, series: x.series, repeticiones: x.repeticiones),
+          (e) => e.id);
+    }
+    return _guardar(_uriRutinaEjercicios('/agregar'), _uriRutinaEjercicios('/editar/${x.id}'), x.id == null,
+        x.toApiJson(), RutinaEjercicioGym.fromJson);
+  }
+
+  Future<void> eliminarRutinaEjercicio(int id) async {
+    if (_session.modoDemo) return _MockDb.eliminar(_MockDb.rutinaEjercicios, id, (x) => x.id);
+    return _eliminar(_uriRutinaEjercicios('/delete/$id'), 'No se pudo quitar el ejercicio de la rutina.');
+  }
+
   Future<void> eliminarMaquina(int id) async {
     if (_session.modoDemo) return _MockDb.eliminarMaquina(id);
     _requiereAdmin();
-    final res = await _send(() => http.delete(_uri('/maquina/delete/$id'), headers: _headers));
+    final res = await _sendAdmin(() => http.delete(_uri('/maquina/delete/$id'), headers: _headers));
     _check(res);
   }
 
@@ -442,6 +600,66 @@ class _MockDb {
     Maquina(id: 8, nombre: 'Curl predicador', descripcion: 'Banco Scott para bíceps.', disponibilidad: 2, musculo: _musculos[4]),
     Maquina(id: 9, nombre: 'Crunch abdominal', descripcion: 'Máquina de encogimientos con carga.', disponibilidad: 1, musculo: _musculos[5]),
   ];
+
+  /// Copias de ejercicios de wger que usa el gimnasio (la referencia va en
+  /// la descripción, como en el backend real).
+  static final List<EjercicioGym> ejercicios = [
+    const EjercicioGym(id: 1, nombre: 'Press de Banca', descripcion: 'wger:73'),
+    const EjercicioGym(id: 2, nombre: 'Aperturas en máquina', descripcion: 'wger:135'),
+    const EjercicioGym(id: 3, nombre: 'Jalón al Pecho con Agarre Cerrado', descripcion: 'wger:158'),
+    const EjercicioGym(id: 4, nombre: 'Prensa de piernas', descripcion: 'wger:371'),
+    const EjercicioGym(id: 5, nombre: 'Sentadilla con disco', descripcion: 'wger:203'),
+    const EjercicioGym(id: 6, nombre: 'Curl de bíceps con mancuerna', descripcion: 'wger:92'),
+    const EjercicioGym(id: 7, nombre: 'Abdominales', descripcion: 'wger:167'),
+  ];
+
+  static final List<EjercicioMusculo> ejercicioMusculos = [
+    EjercicioMusculo(id: 1, ejercicioId: 1, musculo: _musculos[0], maquina: _maquinas[0]),
+    EjercicioMusculo(id: 2, ejercicioId: 2, musculo: _musculos[0], maquina: _maquinas[1]),
+    EjercicioMusculo(id: 3, ejercicioId: 3, musculo: _musculos[1], maquina: _maquinas[2]),
+    EjercicioMusculo(id: 4, ejercicioId: 4, musculo: _musculos[2], maquina: _maquinas[4]),
+    EjercicioMusculo(id: 5, ejercicioId: 5, musculo: _musculos[2]),
+    EjercicioMusculo(id: 6, ejercicioId: 6, musculo: _musculos[4]),
+    EjercicioMusculo(id: 7, ejercicioId: 7, musculo: _musculos[5]),
+  ];
+
+  static final List<RutinaGym> rutinas = [
+    const RutinaGym(id: 1, diaSemana: 'Lunes,Jueves'),
+    const RutinaGym(id: 2, diaSemana: 'Martes,Viernes'),
+    const RutinaGym(id: 3, diaSemana: 'Miércoles', clienteId: 1, clienteNombre: 'Eddy Coello'),
+  ];
+
+  static final List<RutinaEjercicioGym> rutinaEjercicios = [
+    const RutinaEjercicioGym(id: 1, rutinaId: 1, ejercicioId: 1, series: 4, repeticiones: 10),
+    const RutinaEjercicioGym(id: 2, rutinaId: 1, ejercicioId: 2, series: 3, repeticiones: 12),
+    const RutinaEjercicioGym(id: 3, rutinaId: 1, ejercicioId: 6, series: 3, repeticiones: 12),
+    const RutinaEjercicioGym(id: 4, rutinaId: 2, ejercicioId: 4, series: 4, repeticiones: 12),
+    const RutinaEjercicioGym(id: 5, rutinaId: 2, ejercicioId: 5, series: 3, repeticiones: 15),
+    const RutinaEjercicioGym(id: 6, rutinaId: 2, ejercicioId: 7, series: 3, repeticiones: 20),
+    const RutinaEjercicioGym(id: 7, rutinaId: 3, ejercicioId: 3, series: 4, repeticiones: 10),
+    const RutinaEjercicioGym(id: 8, rutinaId: 3, ejercicioId: 7, series: 3, repeticiones: 15),
+  ];
+
+  static Future<List<T>> listarDe<T>(List<T> lista) async {
+    await latencia();
+    return List.of(lista);
+  }
+
+  static Future<T> guardar<T>(List<T> lista, T item, int? id, T Function(int) conId, int? Function(T) idDe) async {
+    await latencia();
+    if (id == null) {
+      final nuevo = conId(_sigId(lista.map(idDe)));
+      lista.add(nuevo);
+      return nuevo;
+    }
+    lista[lista.indexWhere((x) => idDe(x) == id)] = item;
+    return item;
+  }
+
+  static Future<void> eliminar<T>(List<T> lista, int id, int? Function(T) idDe) async {
+    await latencia();
+    lista.removeWhere((x) => idDe(x) == id);
+  }
 
   static int _sigId(Iterable<int?> ids) => ids.map((e) => e ?? 0).fold<int>(0, max) + 1;
 

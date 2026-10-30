@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 
 class FitColors {
   static const primary = Color(0xFFFF5A1F);
+
+  /// Marcas de gráficos: el mismo naranja, un paso más oscuro para quedar
+  /// dentro de la banda de luminosidad recomendada sobre fondo oscuro
+  /// (validado con el validador de paletas: OKLCH L 0.48–0.67, contraste ≥ 3:1).
+  static const chart = Color(0xFFF2541C);
   static const background = Color(0xFF0E1015);
   static const surface = Color(0xFF181B23);
   static const surfaceHigh = Color(0xFF222632);
