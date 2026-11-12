@@ -6,6 +6,9 @@ library;
 /// Nivel de equipo que requiere un ejercicio (de menos a más).
 enum Equipo {
   corporal('Peso corporal'),
+
+  /// Barra de dominadas o paralelas: la tienen muchos parques y los gimnasios.
+  barra('Barra o paralelas'),
   mancuernas('Mancuernas o equipo de casa'),
   gimnasio('Máquina o barra');
 
@@ -55,15 +58,18 @@ class EjercicioWger {
 
   String get _nombres => _sinTildes('$nombre $nombreEn'.toLowerCase());
 
-  static const _equipoGimnasio = {'Barbell', 'SZ-Bar', 'Cable machine', 'Incline bench', 'Pull-up bar'};
+  static const _equipoGimnasio = {'Barbell', 'SZ-Bar', 'Cable machine', 'Incline bench'};
   static const _equipoCasa = {'Dumbbell', 'Kettlebell', 'Bench', 'Resistance band', 'Swiss Ball'};
 
   /// Equipo que necesita. Si wger no lo indica, se deduce del nombre.
   Equipo get equipo {
     if (equipos.any(_equipoGimnasio.contains)) return Equipo.gimnasio;
     if (equipos.any(_equipoCasa.contains)) return Equipo.mancuernas;
+    if (equipos.contains('Pull-up bar')) return Equipo.barra;
     if (equipos.isNotEmpty) return Equipo.corporal;
     final n = _nombres;
+    // Antes que "barra" de gimnasio: "barra de dominadas" no lleva discos.
+    if (RegExp(r'dominada|pull-?up|chin-?up|paralela|fondos|\bdips?\b|muscle-?up').hasMatch(n)) return Equipo.barra;
     if (RegExp(r'maquina|machine|polea|cable|barra|barbell|prensa|smith|press de banca|jalon|lat pull').hasMatch(n)) {
       return Equipo.gimnasio;
     }

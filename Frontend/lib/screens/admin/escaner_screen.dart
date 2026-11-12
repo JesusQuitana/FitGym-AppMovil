@@ -168,7 +168,7 @@ class _Visor extends StatelessWidget {
           width: 250,
           height: 250,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(2),
             border: Border.all(color: Colors.white.withAlpha(200), width: 3),
           ),
         ),
@@ -188,7 +188,7 @@ class _Instrucciones extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(color: Colors.black.withAlpha(160), borderRadius: BorderRadius.circular(99)),
+          decoration: BoxDecoration(color: Colors.black.withAlpha(160), borderRadius: BorderRadius.circular(2)),
           child: const Text('Apunta al código QR del afiliado', style: TextStyle(color: Colors.white)),
         ),
         const SizedBox(height: 12),
@@ -219,7 +219,7 @@ class _TarjetaResultado extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: FitColors.surface,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(2),
           border: Border.all(color: color, width: 2),
         ),
         child: Column(
@@ -238,7 +238,7 @@ class _TarjetaResultado extends StatelessWidget {
                         style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 0.5),
                       ),
                       const SizedBox(height: 2),
-                      Text(resultado.motivo, style: const TextStyle(color: FitColors.textMuted)),
+                      Text(resultado.motivo, style: TextStyle(color: FitColors.textMuted)),
                     ],
                   ),
                 ),
@@ -256,7 +256,7 @@ class _TarjetaResultado extends StatelessWidget {
                       children: [
                         Text(c.nombreCompleto, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                         Text('Pago: ${fechaCorta(c.fechaPago)}',
-                            style: const TextStyle(color: FitColors.textMuted, fontSize: 13)),
+                            style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
                       ],
                     ),
                   ),

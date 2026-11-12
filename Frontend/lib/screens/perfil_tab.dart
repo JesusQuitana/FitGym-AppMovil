@@ -93,7 +93,7 @@ class _PerfilTabState extends State<PerfilTab> {
           Container(
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(color: FitColors.surface, borderRadius: BorderRadius.circular(18)),
+            decoration: BoxDecoration(color: FitColors.surface, borderRadius: BorderRadius.circular(2)),
             child: Column(
               children: [
                 _Dato(Icons.flag_outlined, 'Objetivo', p.objetivo.etiqueta),
@@ -111,6 +111,9 @@ class _PerfilTabState extends State<PerfilTab> {
         ] else
           _Accion(Icons.auto_awesome, 'Crear mi plan', 'Objetivo, nivel y equipo: te sugerimos rutinas',
               widget.onPlantillas),
+        const SizedBox(height: 18),
+        const _Seccion('Apariencia'),
+        const _SelectorTema(),
         const SizedBox(height: 18),
         const _Seccion('Más'),
         _Accion(Icons.admin_panel_settings_outlined, 'Acceso de recepción', 'Solo para el personal del gimnasio',
@@ -130,7 +133,7 @@ class _Seccion extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 8),
         child: Text(texto.toUpperCase(),
-            style: const TextStyle(color: FitColors.textMuted, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
+            style: TextStyle(color: FitColors.textMuted, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
       );
 }
 
@@ -147,7 +150,7 @@ class _Dato extends StatelessWidget {
           children: [
             Icon(icon, size: 20, color: FitColors.textMuted),
             const SizedBox(width: 12),
-            SizedBox(width: 90, child: Text(label, style: const TextStyle(color: FitColors.textMuted))),
+            SizedBox(width: 90, child: Text(label, style: TextStyle(color: FitColors.textMuted))),
             Expanded(child: Text(valor, style: const TextStyle(fontWeight: FontWeight.w600))),
           ],
         ),
@@ -167,15 +170,55 @@ class _Accion extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 8),
         child: Material(
           color: FitColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(2),
           child: ListTile(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
             onTap: onTap,
             leading: Icon(icon, color: color ?? FitColors.primary),
             title: Text(titulo, style: TextStyle(fontWeight: FontWeight.w700, color: color)),
-            subtitle: Text(detalle, style: const TextStyle(color: FitColors.textMuted, fontSize: 12)),
-            trailing: const Icon(Icons.chevron_right, color: FitColors.textMuted),
+            subtitle: Text(detalle, style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
+            trailing: Icon(Icons.chevron_right, color: FitColors.textMuted),
           ),
         ),
       );
+}
+
+/// Sistema / Claro / Oscuro. "Sistema" sigue al teléfono; las otras dos
+/// opciones se guardan y se mantienen aunque el teléfono cambie de tema.
+class _SelectorTema extends StatelessWidget {
+  const _SelectorTema();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: Session.instance.tema,
+      builder: (context, modo, _) {
+        final aviso = switch (modo) {
+          ThemeMode.system => 'Sigue el tema de tu teléfono.',
+          ThemeMode.light => 'Elegiste claro. Se mantiene aunque el teléfono cambie de tema.',
+          ThemeMode.dark => 'Elegiste oscuro. Se mantiene aunque el teléfono cambie de tema.',
+        };
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SegmentedButton<ThemeMode>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: ThemeMode.system, label: Text('Sistema'), icon: Icon(Icons.brightness_auto_outlined)),
+                  ButtonSegment(value: ThemeMode.light, label: Text('Claro'), icon: Icon(Icons.light_mode_outlined)),
+                  ButtonSegment(value: ThemeMode.dark, label: Text('Oscuro'), icon: Icon(Icons.dark_mode_outlined)),
+                ],
+                selected: {modo},
+                onSelectionChanged: (s) => Session.instance.saveTema(s.first),
+              ),
+              const SizedBox(height: 8),
+              Text(aviso, style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }

@@ -75,7 +75,7 @@ class _RutinaEditorScreenState extends State<RutinaEditorScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _agregar,
         backgroundColor: FitColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: FitColors.onPrimary,
         icon: const Icon(Icons.add),
         label: const Text('Agregar ejercicio'),
       ),
@@ -88,7 +88,7 @@ class _RutinaEditorScreenState extends State<RutinaEditorScreen> {
             decoration: fitInput('Nombre de la rutina', Icons.edit_note, hint: 'Ej. Pecho y tríceps'),
           ),
           const SizedBox(height: 20),
-          const Text('Días de la semana', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
+          Text('Días de la semana', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -104,7 +104,7 @@ class _RutinaEditorScreenState extends State<RutinaEditorScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          Text('Ejercicios (${_ejercicios.length})', style: const TextStyle(color: FitColors.textMuted, fontSize: 13)),
+          Text('Ejercicios (${_ejercicios.length})', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
           const SizedBox(height: 8),
           if (_ejercicios.isEmpty)
             const VacioMensaje(icon: Icons.fitness_center, texto: 'Agrega ejercicios desde el catálogo.')
@@ -121,17 +121,17 @@ class _RutinaEditorScreenState extends State<RutinaEditorScreen> {
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Material(
                       color: FitColors.surface,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(2),
                       child: ListTile(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
                         onTap: () => _editarEjercicio(i),
                         leading: ReorderableDragStartListener(
                           index: i,
-                          child: const Icon(Icons.drag_indicator, color: FitColors.textMuted),
+                          child: Icon(Icons.drag_indicator, color: FitColors.textMuted),
                         ),
                         title: Text(_ejercicios[i].nombre, style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text('${_ejercicios[i].musculo} · ${_ejercicios[i].resumen}',
-                            style: const TextStyle(color: FitColors.textMuted)),
+                            style: TextStyle(color: FitColors.textMuted)),
                         trailing: IconButton(
                           tooltip: 'Quitar',
                           icon: const Icon(Icons.close),
@@ -208,7 +208,7 @@ class _SelectorEjercicioState extends State<SelectorEjercicio> {
                               OpcionEjercicioTile(
                                 opcion: o,
                                 onTap: () => Navigator.pop(context, o),
-                                trailing: const Icon(Icons.add_circle_outline, color: FitColors.primary),
+                                trailing: Icon(Icons.add_circle_outline, color: FitColors.primary),
                               ),
                           ],
                         ),
@@ -235,9 +235,9 @@ class OpcionEjercicioTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: FitColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(2),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(2),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -255,7 +255,7 @@ class OpcionEjercicioTile extends StatelessWidget {
                         Text(opcion.descripcion.replaceAll(RegExp(r'\s+'), ' '),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: FitColors.textMuted, fontSize: 13)),
+                            style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
                       ],
                       const SizedBox(height: 6),
                       Wrap(
@@ -265,7 +265,7 @@ class OpcionEjercicioTile extends StatelessWidget {
                         children: [
                           MusculoChip(opcion.musculo),
                           if (opcion.detalle.isNotEmpty)
-                            Text(opcion.detalle, style: const TextStyle(color: FitColors.textMuted, fontSize: 12)),
+                            Text(opcion.detalle, style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
                         ],
                       ),
                     ],

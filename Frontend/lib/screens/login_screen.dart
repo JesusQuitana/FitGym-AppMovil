@@ -95,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     'Ingresa tu correo y el código de 4 dígitos que te entregó recepción. '
                     'Solo lo haces una vez: la app recuerda tu pase y tus rutinas del gimnasio.',
                     style: TextStyle(color: FitColors.textMuted, height: 1.4),
@@ -138,26 +138,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: FilledButton(
                       onPressed: _cargando ? null : _ingresar,
                       style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
                         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                       ),
                       child: _cargando
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 22,
                               height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                              child: CircularProgressIndicator(strokeWidth: 2.5, color: FitColors.background),
                             )
                           : const Text('Vincular'),
                     ),
                   ),
                   const SizedBox(height: 18),
                   if (Session.instance.modoDemo)
-                    const FitCard(
-                      padding: EdgeInsets.all(14),
+                    FitCard(
+                      padding: const EdgeInsets.all(14),
                       child: Row(
                         children: [
                           Icon(Icons.info_outline, color: FitColors.warning, size: 20),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'Modo demo: prueba con eddy@fitgym.com y el código 1234.',
@@ -168,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     '¿No tienes código? Pídelo en la recepción de tu gimnasio.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: FitColors.textMuted, fontSize: 13),
@@ -253,11 +253,11 @@ class _AdminLoginDialogState extends State<_AdminLoginDialog> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 10),
-            Text(_error!, style: const TextStyle(color: FitColors.danger, fontSize: 13)),
+            Text(_error!, style: TextStyle(color: FitColors.danger, fontSize: 13)),
           ],
           if (Session.instance.modoDemo) ...[
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'Modo demo: ${AppConfig.demoAdminUser} / ${AppConfig.demoAdminPassword}',
               style: TextStyle(color: FitColors.textMuted, fontSize: 12),
             ),

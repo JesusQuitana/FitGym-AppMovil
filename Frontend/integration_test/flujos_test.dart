@@ -35,16 +35,39 @@ Future<void> esperar(WidgetTester tester, [Duration total = const Duration(secon
 /// porque la app todavía está cambiando de pantalla o cargando datos.
 Future<Finder> aparece(WidgetTester tester, Finder f, {Duration limite = const Duration(seconds: 6)}) async {
   final fin = DateTime.now().add(limite);
-  while (f.evaluate().isEmpty && DateTime.now().isBefore(fin)) {
+  while (!_hay(f) && DateTime.now().isBefore(fin)) {
     await tester.pump(const Duration(milliseconds: 100));
+  }
+  if (!_hay(f)) {
+    // Para entender la falla: qué textos hay en pantalla en ese momento.
+    final textos = tester.widgetList<Text>(find.byType(Text)).map((t) => t.data ?? t.textSpan?.toPlainText()).toList();
+    debugPrint('No apareció $f. En pantalla: $textos');
   }
   return f;
 }
 
-Future<void> tocar(WidgetTester tester, Finder f) async {
+/// Espera (hasta [limite]) a que [f] ya no esté en pantalla.
+Future<void> desaparece(WidgetTester tester, Finder f, {Duration limite = const Duration(seconds: 8)}) async {
+  final fin = DateTime.now().add(limite);
+  while (_hay(f) && DateTime.now().isBefore(fin)) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+/// Si el buscador encuentra algo. `.first` lanza un error cuando no hay
+/// nada, en lugar de devolver vacío: se trata igual que "todavía no está".
+bool _hay(Finder f) {
+  try {
+    return f.evaluate().isNotEmpty;
+  } on StateError {
+    return false;
+  }
+}
+
+Future<void> tocar(WidgetTester tester, Finder f, {bool warnIfMissed = false}) async {
   await aparece(tester, f);
   await tester.ensureVisible(f);
-  await tester.tap(f);
+  await tester.tap(f, warnIfMissed: warnIfMissed);
   await esperar(tester, const Duration(milliseconds: 800));
 }
 
@@ -73,13 +96,24 @@ void main() {
     await tocar(tester, find.text('Rutinas'));
     expect(await aparece(tester, find.text('Circuito B')), findsWidgets);
     await tocar(tester, find.text('Circuito B').last);
-    await tocar(tester, find.byKey(const ValueKey('serie-0-0')));
+    // Primero la vista previa; el entrenamiento empieza recién con el botón.
+    expect(await aparece(tester, find.text('Empezar entrenamiento')), findsOneWidget);
+    expect(find.text('Serie hecha'), findsNothing);
+    await tocar(tester, find.text('Empezar entrenamiento'));
+    await tocar(tester, find.byKey(const ValueKey('serie-hecha')));
     expect(await aparece(tester, find.text('Descanso')), findsWidgets);
     await tocar(tester, find.text('Saltar'));
     await tocar(tester, find.text('Terminar entrenamiento'));
     expect(await aparece(tester, find.text('¡Entrenamiento guardado!')), findsOneWidget);
     await tocar(tester, find.text('Listo'));
+    await desaparece(tester, find.text('¡Entrenamiento guardado!'));
+    await esperar(tester, const Duration(milliseconds: 600));
+
+    // De vuelta en la vista previa de la rutina.
+    expect(await aparece(tester, find.text('Empezar entrenamiento')), findsOneWidget);
     await tocar(tester, find.byType(BackButton));
+    await desaparece(tester, find.text('Empezar entrenamiento'));
+    await esperar(tester, const Duration(milliseconds: 600));
 
     await tocar(tester, find.text('Inicio'));
     expect(await aparece(tester, find.textContaining('Esta semana: 1 entrenamiento')), findsOneWidget);
@@ -97,11 +131,15 @@ void main() {
 
     expect(await aparece(tester, find.textContaining('Hola, Eddy')), findsOneWidget);
     expect(await aparece(tester, find.text('Mostrar mi pase')), findsOneWidget);
+    // El aviso "gimnasio vinculado" flota abajo, justo sobre la tarjeta del pase.
+    await desaparece(tester, find.byType(SnackBar));
 
     // El pase con QR dinámico.
     await tocar(tester, find.text('Mostrar mi pase'));
     expect(await aparece(tester, find.textContaining('se renueva en')), findsOneWidget);
     await tocar(tester, find.byType(BackButton));
+    await desaparece(tester, find.textContaining('se renueva en'));
+    await esperar(tester, const Duration(milliseconds: 600));
 
     // Hoy en casa: sin pase ni login; de vuelta al gimnasio, sigue vinculado.
     await tocar(tester, find.text('En casa'));
@@ -110,8 +148,8 @@ void main() {
     expect(await aparece(tester, find.text('Mostrar mi pase')), findsOneWidget);
 
     await tocar(tester, find.text('Rutinas'));
-    expect(await aparece(tester, find.text('DE TU GIMNASIO')), findsOneWidget);
-    expect(await aparece(tester, find.text('Asignada a ti')), findsWidgets);
+    expect(await aparece(tester, find.textContaining('Del gimnasio ·')), findsOneWidget); // filtro con la cantidad
+    expect(await aparece(tester, find.text('ASIGNADA')), findsWidgets);
     expect(await aparece(tester, find.text('Pecho · Brazos')), findsWidgets);
   });
 

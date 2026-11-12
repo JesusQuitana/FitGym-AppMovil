@@ -42,7 +42,7 @@ class MusculoChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withAlpha(38),
-        borderRadius: BorderRadius.circular(99),
+        borderRadius: BorderRadius.circular(2),
       ),
       child: Text(
         nombre.isEmpty ? 'Sin grupo' : nombre,
@@ -88,9 +88,9 @@ class MaquinaTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: FitColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(2),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(2),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -99,7 +99,7 @@ class MaquinaTile extends StatelessWidget {
                 Container(
                   width: 46,
                   height: 46,
-                  decoration: BoxDecoration(color: color.withAlpha(40), borderRadius: BorderRadius.circular(14)),
+                  decoration: BoxDecoration(color: color.withAlpha(40), borderRadius: BorderRadius.circular(2)),
                   child: Icon(iconoMusculo(musculo), color: color),
                 ),
                 const SizedBox(width: 12),
@@ -114,7 +114,7 @@ class MaquinaTile extends StatelessWidget {
                           maquina.descripcion,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: FitColors.textMuted, fontSize: 13),
+                          style: TextStyle(color: FitColors.textMuted, fontSize: 13),
                         ),
                       ],
                       const SizedBox(height: 6),
@@ -182,7 +182,7 @@ class VacioMensaje extends StatelessWidget {
         children: [
           Icon(icon, size: 48, color: FitColors.textMuted),
           const SizedBox(height: 12),
-          Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: FitColors.textMuted, height: 1.4)),
+          Text(texto, textAlign: TextAlign.center, style: TextStyle(color: FitColors.textMuted, height: 1.4)),
           if (accion != null) ...[const SizedBox(height: 8), accion!],
         ],
       ),

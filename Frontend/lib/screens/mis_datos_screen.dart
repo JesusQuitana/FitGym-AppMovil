@@ -87,7 +87,7 @@ class _DatosTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        const Text(
+        Text(
           '¿Algún dato es incorrecto? Solicita la corrección en recepción.',
           textAlign: TextAlign.center,
           style: TextStyle(color: FitColors.textMuted, fontSize: 12),
@@ -107,7 +107,7 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         text.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           color: FitColors.textMuted,
           fontSize: 12,
           fontWeight: FontWeight.w700,

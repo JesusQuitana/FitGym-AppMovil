@@ -74,8 +74,8 @@ class _ProgresoScreenState extends State<ProgresoScreen> {
         const _Titulo('Peso por ejercicio'),
         _Tarjeta(
           child: ejercicios.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Text(
                     'Anota el peso que usas en tus series: con dos entrenamientos de un mismo ejercicio verás su evolución aquí.',
                     style: TextStyle(color: FitColors.textMuted, height: 1.4),
@@ -127,7 +127,7 @@ class _Tarjeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-        decoration: BoxDecoration(color: FitColors.surface, borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(color: FitColors.surface, borderRadius: BorderRadius.circular(2)),
         child: child,
       );
 }
@@ -142,14 +142,14 @@ class _Indicador extends StatelessWidget {
   Widget build(BuildContext context) => Expanded(
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-          decoration: BoxDecoration(color: FitColors.surface, borderRadius: BorderRadius.circular(18)),
+          decoration: BoxDecoration(color: FitColors.surface, borderRadius: BorderRadius.circular(2)),
           child: Column(
             children: [
               Icon(icono, color: FitColors.primary, size: 20),
               const SizedBox(height: 6),
               Text(valor, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
               Text(etiqueta,
-                  textAlign: TextAlign.center, style: const TextStyle(color: FitColors.textMuted, fontSize: 12)),
+                  textAlign: TextAlign.center, style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
             ],
           ),
         ),
@@ -198,7 +198,7 @@ class _BarrasSemanalesState extends State<BarrasSemanales> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     for (final v in [tope, tope ~/ 2, 0])
-                      Text('$v', style: const TextStyle(color: FitColors.textMuted, fontSize: 10)),
+                      Text('$v', style: TextStyle(color: FitColors.textMuted, fontSize: 10)),
                   ],
                 ),
               ),
@@ -208,7 +208,7 @@ class _BarrasSemanalesState extends State<BarrasSemanales> {
                   children: [
                     Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [for (var i = 0; i < 3; i++) Container(height: 1, color: Colors.white.withAlpha(18))],
+                      children: [for (var i = 0; i < 3; i++) Container(height: 1, color: FitColors.ink.withAlpha(18))],
                     ),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -258,7 +258,7 @@ class _BarrasSemanalesState extends State<BarrasSemanales> {
                   i.isEven || i == datos.length - 1 ? _fecha(datos[i].$1) : '',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: i == _sel ? Colors.white : FitColors.textMuted,
+                    color: i == _sel ? FitColors.ink : FitColors.textMuted,
                     fontSize: 10,
                     fontWeight: i == _sel ? FontWeight.w700 : FontWeight.w400,
                   ),
@@ -299,7 +299,7 @@ class _LineaPesoState extends State<LineaPeso> {
           cambio == 0
               ? 'Sin cambios desde el primer registro'
               : '${cambio > 0 ? '+' : ''}${_kg(cambio)} kg desde el primer registro',
-          style: const TextStyle(color: FitColors.textMuted, fontSize: 12),
+          style: TextStyle(color: FitColors.textMuted, fontSize: 12),
         ),
         const SizedBox(height: 10),
         SizedBox(
@@ -351,14 +351,14 @@ class _PintorLinea extends CustomPainter {
 
     // Cuadrícula y etiquetas del eje, apagadas.
     final grilla = Paint()
-      ..color = Colors.white.withAlpha(18)
+      ..color = FitColors.ink.withAlpha(18)
       ..strokeWidth = 1;
     for (var k = 0; k <= 2; k++) {
       final y = _arriba + alto * k / 2;
       canvas.drawLine(Offset(_izq, y), Offset(size.width - _der, y), grilla);
       final valor = hi - (hi - lo) * k / 2;
       final tp = TextPainter(
-        text: TextSpan(text: _kg(valor), style: const TextStyle(color: FitColors.textMuted, fontSize: 10)),
+        text: TextSpan(text: _kg(valor), style: TextStyle(color: FitColors.textMuted, fontSize: 10)),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(canvas, Offset(_izq - tp.width - 6, y - tp.height / 2));
@@ -382,7 +382,7 @@ class _PintorLinea extends CustomPainter {
       final p = punto(i);
       if (i == sel) {
         canvas.drawLine(Offset(p.dx, _arriba), Offset(p.dx, size.height - _abajo),
-            Paint()..color = Colors.white.withAlpha(40)..strokeWidth = 1);
+            Paint()..color = FitColors.ink.withAlpha(40)..strokeWidth = 1);
       }
       canvas.drawCircle(p, i == sel ? 6 : 4, Paint()..color = FitColors.surface);
       canvas.drawCircle(p, i == sel ? 5 : 4, Paint()..color = FitColors.chart);
@@ -405,14 +405,14 @@ class _FilaSesion extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: FitColors.surface, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: FitColors.surface, borderRadius: BorderRadius.circular(2)),
         child: Row(
           children: [
             Column(
               children: [
                 Text('${s.fecha.day}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
                 Text(const ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][s.fecha.month - 1],
-                    style: const TextStyle(color: FitColors.textMuted, fontSize: 12)),
+                    style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
               ],
             ),
             const SizedBox(width: 16),
@@ -425,7 +425,7 @@ class _FilaSesion extends StatelessWidget {
                   Text(
                     '${s.seriesHechas}/${s.seriesPlan} series · ${s.duracion.inMinutes} min'
                     '${s.volumenKg > 0 ? ' · ${_kg(s.volumenKg)} kg' : ''}',
-                    style: const TextStyle(color: FitColors.textMuted, fontSize: 13),
+                    style: TextStyle(color: FitColors.textMuted, fontSize: 13),
                   ),
                   if (musculos.isNotEmpty) ...[
                     const SizedBox(height: 6),

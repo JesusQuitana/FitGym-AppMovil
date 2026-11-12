@@ -1,21 +1,20 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../../models/ejercicio_wger.dart';
 import '../../models/rutina.dart';
 import '../../models/sesion.dart';
 import '../../services/historial.dart';
+import '../../services/wger.dart';
 import '../../theme.dart';
-import '../../widgets/common.dart';
+import '../../widgets/editorial.dart';
 import '../../widgets/como_se_hace.dart';
-import '../../widgets/fitness.dart';
+import 'entrenamiento_screen.dart';
 import 'rutina_editor_screen.dart';
-import 'rutinas_tab.dart';
 
-/// Detalle de una rutina y modo entrenamiento: se marcan las series hechas,
-/// se anota el peso, corre un temporizador de descanso y al terminar se
-/// guarda la sesión en el historial con sugerencias de progresión.
+/// Vista previa de una rutina: origen y días, totales y los ejercicios con lo
+/// que se usó la vez pasada. El entrenamiento empieza con "Empezar
+/// entrenamiento" (ver [EntrenamientoScreen]); al terminar se guarda la sesión
+/// en el historial y se muestra el resumen con sugerencias de progresión.
 class RutinaDetalleScreen extends StatefulWidget {
   const RutinaDetalleScreen({
     super.key,
@@ -44,127 +43,79 @@ class RutinaDetalleScreen extends StatefulWidget {
   State<RutinaDetalleScreen> createState() => _RutinaDetalleScreenState();
 }
 
-class _RutinaDetalleScreenState extends State<RutinaDetalleScreen> {
-  static const _opcionesDescanso = [60, 90, 120];
+enum _Accion { duplicar, editar, eliminar }
 
+class _RutinaDetalleScreenState extends State<RutinaDetalleScreen> {
   late Rutina _rutina = widget.rutina;
 
-  /// Series hechas por ejercicio (índice → cantidad).
-  final Map<int, int> _hechas = {};
-
-  /// Peso anotado por ejercicio en esta sesión.
-  final Map<int, double?> _pesos = {};
   List<SesionEntrenamiento> _historial = [];
-  DateTime? _inicio;
+  Map<String, double> _ultimosPesos = {};
 
-  int _descansoTotal = 90;
-  int? _descansoRestante;
-  Timer? _timer;
+  /// Ejercicios hechos alguna vez (aunque sin peso).
+  Set<String> _hechosAntes = {};
+
+  /// Imagen de wger por índice de ejercicio.
+  Map<int, String?> _imagenes = {};
+  Map<int, EjercicioWger?> _wgerEjercicios = {};
+  late Future<void> _carga;
 
   @override
   void initState() {
     super.initState();
-    _cargarHistorial();
+    _carga = _cargarHistorial();
+    _cargarImagenes();
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  /// Precarga el peso: el último usado en ese ejercicio o el de la rutina.
   Future<void> _cargarHistorial() async {
     final h = await Historial.cargar(widget.espacio);
     if (!mounted) return;
-    final ultimos = Historial.ultimosPesos(h);
     setState(() {
       _historial = h;
-      for (var i = 0; i < _rutina.ejercicios.length; i++) {
-        final e = _rutina.ejercicios[i];
-        _pesos[i] = ultimos[e.nombre] ?? e.pesoKg;
-      }
+      _ultimosPesos = Historial.ultimosPesos(h);
+      _hechosAntes = {
+        for (final s in h)
+          for (final e in s.ejercicios)
+            if (e.seriesHechas > 0) e.nombre,
+      };
     });
   }
 
-  int get _totalSeries => _rutina.ejercicios.fold(0, (a, e) => a + e.series);
-  int get _seriesHechas => _hechas.values.fold(0, (a, b) => a + b);
-
-  void _tocarSerie(int i, int serie) {
-    final actuales = _hechas[i] ?? 0;
-    // Tocar una serie ya marcada la desmarca (y las siguientes).
-    final nuevas = serie < actuales ? serie : serie + 1;
-    setState(() {
-      _hechas[i] = nuevas;
-      _inicio ??= DateTime.now();
-    });
-    if (nuevas > actuales && _seriesHechas < _totalSeries) _iniciarDescanso();
+  Future<void> _cargarImagenes() async {
+    final ejercicios = _rutina.ejercicios;
+    final imagenes = <int, String?>{};
+    final wger = <int, EjercicioWger?>{};
+    for (var i = 0; i < ejercicios.length; i++) {
+      final e = ejercicios[i];
+      try {
+        final w = e.wgerId != null ? await Wger.porId(e.wgerId!) : await Wger.porNombre(e.nombre);
+        wger[i] = w;
+        imagenes[i] = w?.imagen;
+      } catch (_) {}
+    }
+    if (mounted && identical(ejercicios, _rutina.ejercicios)) {
+      setState(() {
+        _imagenes = imagenes;
+        _wgerEjercicios = wger;
+      });
+    }
   }
 
-  void _iniciarDescanso() {
-    _timer?.cancel();
-    setState(() => _descansoRestante = _descansoTotal);
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      final r = (_descansoRestante ?? 0) - 1;
-      if (r <= 0) {
-        t.cancel();
-        HapticFeedback.heavyImpact();
-        SystemSound.play(SystemSoundType.alert);
-        if (mounted) setState(() => _descansoRestante = null);
-      } else if (mounted) {
-        setState(() => _descansoRestante = r);
-      }
-    });
-  }
-
-  void _saltarDescanso() {
-    _timer?.cancel();
-    setState(() => _descansoRestante = null);
-  }
-
-  Future<void> _anotarPeso(int i) async {
-    final ctrl = TextEditingController(text: _pesos[i] == null ? '' : _kg(_pesos[i]!));
-    final valor = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: FitColors.surface,
-        title: Text(_rutina.ejercicios[i].nombre),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: fitInput('Peso usado (kg)', Icons.monitor_weight_outlined, hint: 'Vacío = sin peso'),
-          onSubmitted: (v) => Navigator.pop(ctx, v),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('Listo')),
-        ],
+  Future<void> _empezar() async {
+    await _carga;
+    if (!mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => EntrenamientoScreen(
+        rutina: _rutina,
+        ultimosPesos: _ultimosPesos,
+        imagenes: _imagenes,
+        wgerEjercicios: _wgerEjercicios,
+        onTerminar: _guardarSesion,
       ),
-    );
-    if (valor != null) setState(() => _pesos[i] = double.tryParse(valor.replaceAll(',', '.')));
+    ));
   }
 
-  Future<void> _terminar() async {
-    _saltarDescanso();
-    final sesion = SesionEntrenamiento(
-      fecha: DateTime.now(),
-      rutinaId: _rutina.id,
-      rutinaNombre: _rutina.nombre,
-      duracion: DateTime.now().difference(_inicio ?? DateTime.now()),
-      ejercicios: [
-        for (var i = 0; i < _rutina.ejercicios.length; i++)
-          EjercicioSesion(
-            nombre: _rutina.ejercicios[i].nombre,
-            musculo: _rutina.ejercicios[i].musculo,
-            seriesPlan: _rutina.ejercicios[i].series,
-            repeticiones: _rutina.ejercicios[i].repeticiones,
-            seriesHechas: _hechas[i] ?? 0,
-            pesoKg: _pesos[i],
-            porTiempo: _rutina.ejercicios[i].porTiempo,
-          ),
-      ],
-    );
+  /// Guarda la sesión en el historial y muestra el resumen ("HECHO.").
+  Future<void> _guardarSesion(SesionEntrenamiento sesion) async {
     final sugerencias = Historial.sugerencias(sesion, _historial);
     await Historial.agregar(widget.espacio, sesion);
     if (!mounted) return;
@@ -175,14 +126,14 @@ class _RutinaDetalleScreenState extends State<RutinaDetalleScreen> {
     if (aplicar == true && sugerencias.isNotEmpty) {
       final nueva = Historial.aplicar(_rutina, sugerencias);
       await widget.onGuardar!(nueva);
-      _rutina = nueva;
+      if (mounted) setState(() => _rutina = nueva);
     }
-    if (!mounted) return;
-    setState(() {
-      _hechas.clear();
-      _inicio = null;
-    });
-    await _cargarHistorial();
+    // Sin esperar la recarga: la pantalla de entrenamiento se cierra ya y la
+    // vista previa se actualiza sola cuando termina de leer el historial.
+    if (mounted) {
+      _carga = _cargarHistorial();
+      // setState is called inside _cargarHistorial when the data is ready.
+    }
   }
 
   Future<void> _editar() async {
@@ -192,11 +143,10 @@ class _RutinaDetalleScreenState extends State<RutinaDetalleScreen> {
     if (r == null) return;
     await widget.onGuardar!(r);
     if (!mounted) return;
-    setState(() {
-      _rutina = r;
-      _hechas.clear();
-    });
-    await _cargarHistorial();
+    setState(() => _rutina = r);
+    _cargarImagenes();
+    _carga = _cargarHistorial();
+    await _carga;
   }
 
   Future<void> _eliminar() async {
@@ -221,303 +171,279 @@ class _RutinaDetalleScreenState extends State<RutinaDetalleScreen> {
     if (mounted) Navigator.pop(context);
   }
 
+  Future<void> _accion(_Accion a) async {
+    switch (a) {
+      case _Accion.duplicar:
+        Navigator.pop(context);
+        await widget.onDuplicar!();
+      case _Accion.editar:
+        await _editar();
+      case _Accion.eliminar:
+        await _eliminar();
+    }
+  }
+
+  /// "la vez pasada 80 kg", "peso corporal" o "primera vez".
+  String _antes(EjercicioRutina e) {
+    final ultimo = _ultimosPesos[e.nombre];
+    if (ultimo != null) return 'la vez pasada ${kgTexto(ultimo)} kg';
+    if (_hechosAntes.contains(e.nombre)) return 'peso corporal';
+    return 'primera vez';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final total = _totalSeries;
-    final progreso = total == 0 ? 0.0 : _seriesHechas / total;
+    final ejercicios = _rutina.ejercicios;
+    final series = ejercicios.fold(0, (a, e) => a + e.series);
+    final minutos = (_rutina.duracionEstimada().inSeconds / 60).round();
+    final acciones = [
+      if (widget.onDuplicar != null) _Accion.duplicar,
+      if (widget.onGuardar != null) _Accion.editar,
+      if (widget.onEliminar != null) _Accion.eliminar,
+    ];
+    final dias = Rutina.textoDiasCorto(_rutina.dias).toUpperCase();
     return Scaffold(
       appBar: AppBar(
-        title: Text(_rutina.nombre),
         actions: [
-          if (widget.onDuplicar != null)
-            TextButton.icon(
-              onPressed: () async {
-                Navigator.pop(context);
-                await widget.onDuplicar!();
-              },
-              icon: const Icon(Icons.copy_all_outlined),
-              label: const Text('Duplicar'),
+          if (acciones.isNotEmpty)
+            PopupMenuButton<_Accion>(
+              tooltip: 'Más opciones',
+              icon: const Icon(Icons.more_horiz),
+              shape: const RoundedRectangleBorder(),
+              color: FitColors.surface,
+              onSelected: _accion,
+              itemBuilder: (_) => [
+                for (final a in acciones)
+                  PopupMenuItem(
+                    value: a,
+                    child: Row(
+                      children: [
+                        Icon(
+                          switch (a) {
+                            _Accion.duplicar => Icons.copy_all_outlined,
+                            _Accion.editar => Icons.edit_outlined,
+                            _Accion.eliminar => Icons.delete_outline,
+                          },
+                          size: 20,
+                          color: a == _Accion.eliminar ? FitColors.danger : FitColors.ink,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(switch (a) {
+                          _Accion.duplicar => 'Duplicar',
+                          _Accion.editar => 'Editar',
+                          _Accion.eliminar => 'Eliminar',
+                        }),
+                      ],
+                    ),
+                  ),
+              ],
             ),
-          if (widget.onGuardar != null)
-            IconButton(tooltip: 'Editar', icon: const Icon(Icons.edit_outlined), onPressed: _editar),
-          if (widget.onEliminar != null)
-            IconButton(tooltip: 'Eliminar', icon: const Icon(Icons.delete_outline), onPressed: _eliminar),
         ],
       ),
-      bottomNavigationBar: _seriesHechas == 0 && _descansoRestante == null
-          ? null
-          : SafeArea(
-              minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: FitColors.background,
+          border: Border(top: BorderSide(color: FitColors.line)),
+        ),
+        child: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: BotonPrincipal(
+            texto: 'Empezar entrenamiento',
+            fondo: FitColors.ink,
+            color: FitColors.background,
+            onPressed: ejercicios.isEmpty ? null : _empezar,
+          ),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                color: FitColors.ink,
+                child: Text(
+                  (_rutina.etiqueta ?? 'Mía').toUpperCase(),
+                  style: TextStyle(
+                    color: FitColors.background,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+              Text(
+                _rutina.esHoy ? 'HOY · $dias' : dias,
+                style: TextStyle(color: FitColors.primary, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Barrido(
+            child: Text(
+              _rutina.nombre.toUpperCase(),
+              style: estiloCifra(52, color: FitColors.ink).copyWith(height: 0.85),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.symmetric(horizontal: BorderSide(color: FitColors.ink)),
+            ),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (_descansoRestante != null) ...[
-                    _Descanso(
-                      restante: _descansoRestante!,
-                      total: _descansoTotal,
-                      onMas: () => setState(() => _descansoRestante = _descansoRestante! + 15),
-                      onSaltar: _saltarDescanso,
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  if (_seriesHechas > 0)
-                    SizedBox(
-                      height: 52,
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _terminar,
-                        icon: const Icon(Icons.flag_outlined),
-                        label: const Text('Terminar entrenamiento'),
-                      ),
-                    ),
+                  Expanded(child: _Marcador(valor: '${ejercicios.length}', etiqueta: 'Ejercicios', primera: true)),
+                  Expanded(child: _Marcador(valor: '$series', etiqueta: 'Series')),
+                  Expanded(child: _Marcador(valor: '≈$minutos', sufijo: 'MIN', etiqueta: 'Duración')),
                 ],
               ),
             ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          if (_rutina.etiqueta != null) ...[
-            Text(
-              _rutina.origen == OrigenRutina.gimnasioAsignada
-                  ? 'Tu gimnasio preparó esta rutina para ti. Para cambiarla, toca "Duplicar".'
-                  : 'Rutina publicada por tu gimnasio. Para cambiarla, toca "Duplicar".',
-              style: const TextStyle(color: FitColors.textMuted, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-          ],
-          DiasSemana(dias: _rutina.dias),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: progreso,
-                    minHeight: 8,
-                    backgroundColor: FitColors.surfaceHigh,
-                    color: FitColors.ok,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text('$_seriesHechas/$total series', style: const TextStyle(fontWeight: FontWeight.w700)),
-            ],
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              const Icon(Icons.timer_outlined, size: 18, color: FitColors.textMuted),
-              const SizedBox(width: 6),
-              const Text('Descanso', style: TextStyle(color: FitColors.textMuted)),
-              const SizedBox(width: 8),
-              for (final s in _opcionesDescanso)
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ChoiceChip(
-                    label: Text('$s s'),
-                    visualDensity: VisualDensity.compact,
-                    selected: _descansoTotal == s,
-                    selectedColor: FitColors.primary.withAlpha(70),
-                    onSelected: (_) => setState(() => _descansoTotal = s),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          for (var i = 0; i < _rutina.ejercicios.length; i++)
-            _EjercicioItem(
-              numero: i + 1,
-              ejercicio: _rutina.ejercicios[i],
-              hechas: _hechas[i] ?? 0,
-              pesoKg: _pesos[i],
-              onSerie: (s) => _tocarSerie(i, s),
-              onPeso: () => _anotarPeso(i),
-            ),
           const SizedBox(height: 4),
-          const Text(
-            'Toca cada círculo al terminar una serie: arranca el descanso. Toca el peso para anotarlo.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: FitColors.textMuted, fontSize: 12),
-          ),
+          if (ejercicios.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text('Esta rutina todavía no tiene ejercicios.', style: TextStyle(color: FitColors.textMuted)),
+            ),
+          for (var i = 0; i < ejercicios.length; i++)
+            _FilaEjercicio(
+              numero: i + 1,
+              ejercicio: ejercicios[i],
+              imagen: _imagenes[i],
+              antes: _antes(ejercicios[i]),
+            ),
+          if (_rutina.esDelGimnasio) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Es una rutina de tu gimnasio. Para cambiarla, hazte una copia desde ⋯',
+              style: TextStyle(color: FitColors.textMuted, fontSize: 12, height: 1.4),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-String _kg(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+String _kg(double v) => kgTexto(v);
 
 String _duracion(Duration d) {
   final m = d.inMinutes;
   return m >= 60 ? '${m ~/ 60} h ${m % 60} min' : '$m min';
 }
 
-class _EjercicioItem extends StatelessWidget {
-  const _EjercicioItem({
-    required this.numero,
-    required this.ejercicio,
-    required this.hechas,
-    required this.pesoKg,
-    required this.onSerie,
-    required this.onPeso,
-  });
-
-  final int numero;
-  final EjercicioRutina ejercicio;
-  final int hechas;
-  final double? pesoKg;
-  final ValueChanged<int> onSerie;
-  final VoidCallback onPeso;
+/// Celda del marcador de la vista previa.
+class _Marcador extends StatelessWidget {
+  const _Marcador({required this.valor, required this.etiqueta, this.sufijo = '', this.primera = false});
+  final String valor;
+  final String sufijo;
+  final String etiqueta;
+  final bool primera;
 
   @override
-  Widget build(BuildContext context) {
-    final completo = hechas >= ejercicio.series;
-    final color = colorMusculo(ejercicio.musculo);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+  Widget build(BuildContext context) => Container(
+        padding: EdgeInsets.fromLTRB(primera ? 0 : 12, 10, 4, 10),
         decoration: BoxDecoration(
-          color: completo ? FitColors.ok.withAlpha(25) : FitColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          border: primera ? null : Border(left: BorderSide(color: FitColors.line)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 15,
-                  backgroundColor: color.withAlpha(45),
-                  child: completo
-                      ? const Icon(Icons.check, size: 16, color: FitColors.ok)
-                      : Text('$numero', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 13)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      InkWell(
-                        onTap: () => mostrarComoSeHace(
-                          context,
-                          wgerId: ejercicio.wgerId,
-                          nombre: ejercicio.nombre,
-                          musculo: ejercicio.musculo,
-                          detalle: ejercicio.detalle,
-                        ),
-                        child: Row(
-                          children: [
-                            Flexible(child: Text(ejercicio.nombre, style: const TextStyle(fontWeight: FontWeight.w700))),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.info_outline, size: 16, color: FitColors.textMuted),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 8,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          MusculoChip(ejercicio.musculo),
-                          Text(ejercicio.resumen, style: const TextStyle(color: FitColors.textMuted, fontSize: 13)),
-                          if (ejercicio.detalle.isNotEmpty && !ejercicio.porTiempo)
-                            Text(ejercicio.detalle, style: const TextStyle(color: FitColors.textMuted, fontSize: 12)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (!ejercicio.porTiempo)
-                  ActionChip(
-                    avatar: const Icon(Icons.monitor_weight_outlined, size: 16),
-                    label: Text(pesoKg == null ? 'Peso' : '${_kg(pesoKg!)} kg'),
-                    onPressed: onPeso,
-                  ),
-              ],
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text.rich(
+                TextSpan(children: [
+                  TextSpan(text: valor),
+                  if (sufijo.isNotEmpty) TextSpan(text: sufijo, style: const TextStyle(fontSize: 16)),
+                ]),
+                style: estiloCifra(34, color: FitColors.ink),
+              ),
             ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (var s = 0; s < ejercicio.series; s++)
-                  Semantics(
-                    key: ValueKey('serie-${numero - 1}-$s'),
-                    button: true,
-                    label: 'Serie ${s + 1}${s < hechas ? ', hecha' : ''}',
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () => onSerie(s),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: s < hechas ? FitColors.ok : FitColors.surfaceHigh,
-                        ),
-                        child: Text(
-                          s < hechas ? '✓' : '${s + 1}',
-                          style: TextStyle(fontWeight: FontWeight.w800, color: s < hechas ? Colors.black : Colors.white),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            const SizedBox(height: 2),
+            Text(etiqueta.toUpperCase(), style: estiloEtiqueta(color: FitColors.ink).copyWith(letterSpacing: 1.2)),
           ],
         ),
-      ),
-    );
-  }
+      );
 }
 
-class _Descanso extends StatelessWidget {
-  const _Descanso({required this.restante, required this.total, required this.onMas, required this.onSaltar});
-  final int restante;
-  final int total;
-  final VoidCallback onMas;
-  final VoidCallback onSaltar;
+/// Fila numerada de un ejercicio: miniatura, nombre, plan y la vez pasada.
+class _FilaEjercicio extends StatelessWidget {
+  const _FilaEjercicio({required this.numero, required this.ejercicio, required this.imagen, required this.antes});
+  final int numero;
+  final EjercicioRutina ejercicio;
+  final String? imagen;
+  final String antes;
 
   @override
   Widget build(BuildContext context) {
-    final texto = '${restante ~/ 60}:${(restante % 60).toString().padLeft(2, '0')}';
+    final e = ejercicio;
+    final plan = e.porTiempo ? '${e.series} × ${e.repeticiones} s' : '${e.series} × ${e.repeticiones}';
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
-      decoration: BoxDecoration(color: FitColors.surfaceHigh, borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: FitColors.line))),
       child: Row(
         children: [
           SizedBox(
-            width: 36,
-            height: 36,
-            child: CircularProgressIndicator(
-              value: restante / (restante > total ? restante : total),
-              strokeWidth: 4,
-              backgroundColor: FitColors.surface,
-              color: FitColors.primary,
+            width: 28,
+            child: Text(
+              numero.toString().padLeft(2, '0'),
+              style: estiloCifra(22, color: FitColors.textMuted).copyWith(fontStyle: FontStyle.normal),
             ),
           ),
+          const SizedBox(width: 10),
+          MiniaturaEjercicio(musculo: e.musculo, imagen: imagen, size: 56),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Descanso', style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
-                Text(texto,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, fontFeatures: [FontFeature.tabularFigures()])),
+                Text(
+                  e.nombre.toUpperCase(),
+                  style: estiloCifra(20, color: FitColors.ink).copyWith(fontStyle: FontStyle.normal, height: 1),
+                ),
+                const SizedBox(height: 3),
+                Text.rich(
+                  TextSpan(children: [
+                    TextSpan(text: '$plan · '),
+                    TextSpan(text: antes, style: TextStyle(color: FitColors.textMuted)),
+                  ]),
+                  style: TextStyle(color: FitColors.ink, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
               ],
             ),
           ),
-          TextButton(onPressed: onMas, child: const Text('+15 s')),
-          TextButton(onPressed: onSaltar, child: const Text('Saltar')),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: FitColors.ink,
+              minimumSize: const Size(44, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              shape: const RoundedRectangleBorder(),
+              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, decoration: TextDecoration.underline),
+            ),
+            onPressed: () => mostrarComoSeHace(
+              context,
+              wgerId: e.wgerId,
+              nombre: e.nombre,
+              musculo: e.musculo,
+              detalle: e.detalle,
+            ),
+            child: Text('Cómo', semanticsLabel: 'Cómo se hace ${e.nombre}'),
+          ),
         ],
       ),
     );
   }
 }
 
+/// Resumen al terminar: pantalla "HECHO.". En claro, todo rojo con texto
+/// carbón; en oscuro, fondo del tema con el título en rojo.
 class _Resumen extends StatelessWidget {
   const _Resumen({required this.sesion, required this.sugerencias, required this.puedeAplicar});
   final SesionEntrenamiento sesion;
@@ -526,62 +452,206 @@ class _Resumen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: FitColors.surface,
-      icon: const Icon(Icons.emoji_events_outlined, color: FitColors.vip, size: 44),
-      title: const Text('¡Entrenamiento guardado!'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _Dato(valor: _duracion(sesion.duracion), etiqueta: 'Duración'),
-              _Dato(valor: '${sesion.seriesHechas}/${sesion.seriesPlan}', etiqueta: 'Series'),
-              _Dato(valor: '${_kg(sesion.volumenKg)} kg', etiqueta: 'Volumen'),
-            ],
-          ),
-          if (sugerencias.isNotEmpty) ...[
-            const Divider(height: 28),
-            const Text('Completaste estos ejercicios dos veces seguidas. ¡Es momento de subir!',
-                style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
-            const SizedBox(height: 8),
-            for (final s in sugerencias)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
+    final oscuro = FitColors.oscuro;
+    final fondo = oscuro ? FitColors.background : FitColors.accent;
+    final texto = oscuro ? FitColors.ink : FitColors.carbon;
+    final titulo = oscuro ? FitColors.accent : FitColors.carbon;
+    final regla = oscuro ? FitColors.line : FitColors.carbon;
+    final botonFondo = oscuro ? FitColors.ink : FitColors.carbon;
+    final botonTexto = oscuro ? FitColors.background : FitColors.papel;
+    final volumen = sesion.volumenKg;
+    final aplicar = sugerencias.isNotEmpty && puedeAplicar;
+
+    return Dialog.fullscreen(
+      backgroundColor: fondo,
+      child: DefaultTextStyle.merge(
+        style: TextStyle(color: texto),
+        child: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              right: -60,
+              child: SizedBox(
+                height: 330,
+                child: DiagonalRoja(
+                  ancho: 220,
+                  color: oscuro ? FitColors.accent : FitColors.carbon,
+                  opacidad: oscuro ? 0.18 : 0.12,
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 32, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.trending_up, size: 18, color: FitColors.ok),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text('${s.ejercicio}: ${s.texto.toLowerCase()}')),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              '${sesion.rutinaNombre} · ${_duracion(sesion.duracion)}'.toUpperCase(),
+                              style: estiloEtiqueta(color: texto, size: 12).copyWith(letterSpacing: 2),
+                            ),
+                            const SizedBox(height: 8),
+                            Golpe(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text('HECHO.', style: estiloCifra(120, color: titulo).copyWith(height: 0.85)),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '¡Entrenamiento guardado!',
+                              style: TextStyle(color: texto, fontSize: 15, fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 20),
+                            Barrido(
+                              retraso: const Duration(milliseconds: 200),
+                              child: Container(
+                                color: oscuro ? FitColors.surface : FitColors.carbon,
+                                child: IntrinsicHeight(
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Expanded(
+                                        child: _Dato(
+                                          valor: '${sesion.seriesHechas}',
+                                          sufijo: '/${sesion.seriesPlan}',
+                                          etiqueta: 'Series',
+                                          primera: true,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: volumen >= 1000
+                                            ? _Dato(
+                                                valor: (volumen / 1000).toStringAsFixed(1),
+                                                sufijo: 'T',
+                                                etiqueta: 'Volumen',
+                                              )
+                                            : _Dato(valor: _kg(volumen), sufijo: 'KG', etiqueta: 'Volumen'),
+                                      ),
+                                      Expanded(
+                                        child: _Dato(
+                                          valor: '${sesion.duracion.inMinutes}',
+                                          sufijo: 'MIN',
+                                          etiqueta: 'Duración',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (sugerencias.isNotEmpty) ...[
+                              const SizedBox(height: 20),
+                              Barrido(
+                                retraso: const Duration(milliseconds: 300),
+                                child: Container(
+                                  padding: const EdgeInsets.only(top: 14),
+                                  decoration: BoxDecoration(border: Border(top: BorderSide(color: regla, width: 2))),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Completaste estos ejercicios dos veces seguidas. ¡Es momento de subir!',
+                                        style: TextStyle(
+                                            color: texto, fontSize: 15, fontWeight: FontWeight.w600, height: 1.45),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      for (final s in sugerencias)
+                                        Padding(
+                                          padding: const EdgeInsets.only(bottom: 6),
+                                          child: Text.rich(
+                                            TextSpan(children: [
+                                              TextSpan(
+                                                text: s.ejercicio,
+                                                style: const TextStyle(fontWeight: FontWeight.w900),
+                                              ),
+                                              TextSpan(text: ': ${s.texto.toLowerCase()}'),
+                                            ]),
+                                            style: TextStyle(color: texto, fontSize: 15, height: 1.4),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (aplicar) ...[
+                      BotonPrincipal(
+                        texto: 'Aplicar a la rutina',
+                        fondo: botonFondo,
+                        color: botonTexto,
+                        onPressed: () => Navigator.pop(context, true),
+                      ),
+                      const SizedBox(height: 6),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: texto,
+                          minimumSize: const Size.fromHeight(44),
+                          shape: const RoundedRectangleBorder(),
+                          textStyle: estiloEtiqueta(size: 13),
+                        ),
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Ahora no'),
+                      ),
+                    ] else
+                      BotonPrincipal(
+                        texto: 'Listo',
+                        fondo: botonFondo,
+                        color: botonTexto,
+                        onPressed: () => Navigator.pop(context, false),
+                      ),
                   ],
                 ),
               ),
+            ),
           ],
-        ],
+        ),
       ),
-      actions: [
-        if (sugerencias.isNotEmpty && puedeAplicar) ...[
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Ahora no')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Aplicar a la rutina')),
-        ] else
-          FilledButton(onPressed: () => Navigator.pop(context, false), child: const Text('Listo')),
-      ],
     );
   }
 }
 
 class _Dato extends StatelessWidget {
-  const _Dato({required this.valor, required this.etiqueta});
+  const _Dato({required this.valor, required this.etiqueta, this.sufijo = '', this.primera = false});
   final String valor;
+  final String sufijo;
   final String etiqueta;
+  final bool primera;
 
   @override
-  Widget build(BuildContext context) => Column(
-        children: [
-          Text(valor, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          Text(etiqueta, style: const TextStyle(color: FitColors.textMuted, fontSize: 12)),
-        ],
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(14, 16, 10, 16),
+        decoration: BoxDecoration(
+          border: primera ? null : Border(left: BorderSide(color: FitColors.papel.withAlpha(40))),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text.rich(
+                TextSpan(children: [
+                  TextSpan(text: valor),
+                  if (sufijo.isNotEmpty) TextSpan(text: sufijo, style: const TextStyle(fontSize: 20)),
+                ]),
+                style: estiloCifra(42, color: FitColors.papel),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(etiqueta.toUpperCase(), style: estiloEtiqueta(color: FitColors.papel.withAlpha(185))),
+          ],
+        ),
       );
 }

@@ -11,6 +11,7 @@ import '../services/session.dart';
 import '../services/totp.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/editorial.dart';
 
 /// Pase de acceso al gimnasio (QR dinámico). Mientras está abierto sube el
 /// brillo al máximo para que el escáner lo lea al primer intento y bloquea
@@ -58,7 +59,16 @@ class _PaseScreenState extends State<PaseScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi pase')),
+      backgroundColor: FitColors.background,
+      appBar: AppBar(
+        backgroundColor: FitColors.background,
+        foregroundColor: FitColors.ink,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        title: Text('PASE DE ACCESO', style: estiloCifra(24, color: FitColors.ink)),
+      ),
       body: RefreshIndicator(
         color: FitColors.primary,
         onRefresh: () async {
@@ -101,104 +111,244 @@ class _PaseTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vencido = cliente.estadoPago == EstadoPago.vencido;
+    final dinamico = Session.instance.totpSecret != null;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
       children: [
-        Text(
-          'Hola, ${cliente.nombre} 👋',
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Muestra este código en el escáner de la entrada.',
-          style: TextStyle(color: FitColors.textMuted),
-        ),
-        const SizedBox(height: 20),
-        FitCard(
-          padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  MembresiaBadge(cliente.membresia),
-                  Text('ID #${cliente.id ?? '-'}', style: const TextStyle(color: FitColors.textMuted)),
-                ],
-              ),
-              const SizedBox(height: 22),
-              _QrPase(cliente: cliente),
-              const SizedBox(height: 18),
-              Text(
-                cliente.nombreCompleto,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        FitCard(
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: FitColors.primary.withAlpha(40),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(Icons.event_available, color: FitColors.primary),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Próxima fecha de pago', style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
-                    const SizedBox(height: 2),
-                    Text(fechaLarga(cliente.fechaPago),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    EstadoPagoChip(cliente),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        Barrido(child: _Ticket(cliente: cliente)),
         if (vencido) ...[
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: FitColors.danger.withAlpha(30),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: FitColors.danger.withAlpha(90)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: FitColors.danger),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Tu mensualidad está vencida. Acércate a recepción para renovarla y mantener tu acceso.',
-                    style: TextStyle(height: 1.35),
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 16),
+          _NotaRegla(
+            color: FitColors.danger,
+            texto: 'Tu mensualidad está vencida. Acércate a recepción para renovarla y mantener tu acceso.',
+            fuerte: true,
           ),
         ],
+        const SizedBox(height: 18),
+        _NotaRegla(
+          color: FitColors.accent,
+          texto: dinamico
+              ? 'Acerca la pantalla al escáner. El código cambia cada ${Totp.periodo} s y no sirve en capturas.'
+              : 'Acerca la pantalla al escáner de la entrada.',
+        ),
       ],
     );
   }
 }
 
-/// QR del pase. Con secreto TOTP es dinámico: cambia cada 30 s, muestra la
-/// cuenta regresiva y un reloj en vivo para que recepción distinga la pantalla
-/// real de una captura. Sin secreto (backend aún sin TOTP) usa el QR estático.
+/// Colores fijos del boleto: siempre oscuro sobre papel, sin importar el tema,
+/// porque el escáner lee mejor ese contraste.
+abstract final class _Boleto {
+  static const tinta = FitColors.carbon;
+  static const suave = Color(0xFF6B6B66);
+  static const perforado = Color(0xFFBDBDB5);
+  static const pista = Color(0xFFDADAD3);
+  static const alDia = Color(0xFF1E7A3E);
+  static const porVencer = Color(0xFF8A5A00);
+  static const vencido = Color(0xFFB3261E);
+}
 
+/// Pase como boleto de evento: datos arriba, perforado y QR abajo.
+/// El boleto siempre es papel; la página alrededor sigue el tema.
+class _Ticket extends StatelessWidget {
+  const _Ticket({required this.cliente});
+  final Cliente cliente;
+
+  @override
+  Widget build(BuildContext context) {
+    final oscuro = FitColors.oscuro;
+    final estado = _estado;
+    return Container(
+      decoration: BoxDecoration(
+        color: oscuro ? FitColors.papel : Colors.white,
+        border: oscuro ? null : Border.all(color: FitColors.carbon, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('FITGYM', style: estiloCifra(22, color: _Boleto.tinta)),
+                    Container(
+                      color: FitColors.carbon,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      child: Text(
+                        cliente.membresia.nombre.toUpperCase(),
+                        style: const TextStyle(
+                          color: FitColors.papel,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Golpe(
+                  retraso: const Duration(milliseconds: 250),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _LineaNombre(cliente.nombre),
+                      if (cliente.apellido.isNotEmpty) _LineaNombre(cliente.apellido),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _Campo(etiqueta: 'Estado', valor: estado.$1, color: estado.$2)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _Campo(
+                        etiqueta: 'Próximo pago',
+                        valor: fechaCorta(cliente.fechaPago).replaceAll('/', ' / '),
+                        color: _Boleto.tinta,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          _Perforado(fondo: FitColors.background),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            child: _QrPase(cliente: cliente),
+          ),
+        ],
+      ),
+    );
+  }
+
+  (String, Color) get _estado {
+    final dias = cliente.diasParaPago;
+    return switch (cliente.estadoPago) {
+      EstadoPago.alDia => ('Al día', _Boleto.alDia),
+      EstadoPago.porVencer => (
+          dias == 0 ? 'Vence hoy' : 'Vence en $dias ${dias == 1 ? 'día' : 'días'}',
+          _Boleto.porVencer,
+        ),
+      EstadoPago.vencido => ('Vencida', _Boleto.vencido),
+    };
+  }
+}
+
+/// Una línea del nombre en grande; se encoge si no cabe en vez de cortarse.
+class _LineaNombre extends StatelessWidget {
+  const _LineaNombre(this.texto);
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          texto.toUpperCase(),
+          maxLines: 1,
+          style: estiloCifra(52, color: _Boleto.tinta).copyWith(height: 0.88),
+        ),
+      );
+}
+
+class _Campo extends StatelessWidget {
+  const _Campo({required this.etiqueta, required this.valor, required this.color});
+  final String etiqueta;
+  final String valor;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(etiqueta.toUpperCase(), style: estiloEtiqueta(color: _Boleto.suave, size: 10)),
+          const SizedBox(height: 2),
+          Text(valor, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800)),
+        ],
+      );
+}
+
+/// Línea perforada con dos muescas recortadas del color de la página.
+class _Perforado extends StatelessWidget {
+  const _Perforado({required this.fondo});
+  final Color fondo;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget muesca() => Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
+        );
+    return SizedBox(
+      height: 24,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Positioned.fill(child: CustomPaint(painter: _Guiones())),
+          Positioned(left: -14, top: 0, child: muesca()),
+          Positioned(right: -14, top: 0, child: muesca()),
+        ],
+      ),
+    );
+  }
+}
+
+class _Guiones extends CustomPainter {
+  const _Guiones();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = _Boleto.perforado
+      ..strokeWidth = 2;
+    final y = size.height / 2;
+    for (double x = 0; x < size.width; x += 10) {
+      final fin = x + 6 > size.width ? size.width : x + 6;
+      canvas.drawLine(Offset(x, y), Offset(fin, y), p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Guiones oldDelegate) => false;
+}
+
+/// Nota bajo el boleto con regla izquierda de 3 px.
+class _NotaRegla extends StatelessWidget {
+  const _NotaRegla({required this.color, required this.texto, this.fuerte = false});
+  final Color color;
+  final String texto;
+  final bool fuerte;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.only(left: 12),
+        decoration: BoxDecoration(border: Border(left: BorderSide(color: color, width: 3))),
+        child: Text(
+          texto,
+          style: TextStyle(
+            color: fuerte ? FitColors.ink : FitColors.textMuted,
+            fontSize: 13,
+            height: 1.45,
+            fontWeight: fuerte ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      );
+}
+
+/// QR del pase. Con secreto TOTP es dinámico: cambia cada 30 s, muestra la
+/// cuenta regresiva (barra roja que se vacía) y un reloj en vivo para que
+/// recepción distinga la pantalla real de una captura. Sin secreto (backend
+/// aún sin TOTP) usa el QR estático.
 class _QrPase extends StatefulWidget {
   const _QrPase({required this.cliente});
   final Cliente cliente;
@@ -209,6 +359,7 @@ class _QrPase extends StatefulWidget {
 
 class _QrPaseState extends State<_QrPase> {
   Timer? _timer;
+  double _fraccionAnterior = 1;
 
   String? get _secreto => Session.instance.totpSecret;
 
@@ -232,7 +383,7 @@ class _QrPaseState extends State<_QrPase> {
   Widget build(BuildContext context) {
     final secreto = _secreto;
     return LayoutBuilder(builder: (context, c) {
-      final size = (c.maxWidth - 32).clamp(160, 260).toDouble();
+      final size = (c.maxWidth - 32).clamp(160, 240).toDouble();
       if (secreto == null) {
         return Column(
           children: [
@@ -241,12 +392,12 @@ class _QrPaseState extends State<_QrPase> {
             const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.info_outline, size: 16, color: FitColors.warning),
+                Icon(Icons.info_outline, size: 16, color: _Boleto.porVencer),
                 SizedBox(width: 6),
                 Flexible(
                   child: Text(
                     'QR estático: tu gimnasio aún no activa el QR dinámico.',
-                    style: TextStyle(color: FitColors.warning, fontSize: 12),
+                    style: TextStyle(color: _Boleto.porVencer, fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -258,37 +409,44 @@ class _QrPaseState extends State<_QrPase> {
       final codigo = Totp.codigo(secreto, ahora);
       final restantes = Totp.segundosRestantes(ahora);
       final reloj = '${_dos(ahora.hour)}:${_dos(ahora.minute)}:${_dos(ahora.second)}';
+      final fraccion = restantes / Totp.periodo;
+      // Se vacía de forma continua; al renovarse el código vuelve a llenarse de golpe.
+      final animar = !sinMovimiento(context) && fraccion <= _fraccionAnterior;
+      _fraccionAnterior = fraccion;
+      const estiloFila = TextStyle(
+        color: _Boleto.tinta,
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.2,
+        fontFeatures: [FontFeature.tabularFigures()],
+      );
       return Column(
         children: [
           PaseQr(data: widget.cliente.qrDinamico(codigo), size: size),
           const SizedBox(height: 14),
-          SizedBox(
-            width: size,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: restantes / Totp.periodo,
-                minHeight: 6,
-                backgroundColor: FitColors.surfaceHigh,
-                color: restantes <= 5 ? FitColors.warning : FitColors.ok,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const _PuntoEnVivo(),
               const SizedBox(width: 6),
-              Text(
-                '$reloj · se renueva en $restantes s',
-                style: const TextStyle(
-                  color: FitColors.textMuted,
-                  fontSize: 13,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
-              ),
+              Expanded(child: Text('El código se renueva en $restantes s', style: estiloFila)),
+              Text(reloj, style: estiloFila),
             ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            height: 6,
+            color: _Boleto.pista,
+            alignment: Alignment.centerLeft,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(end: fraccion),
+              duration: animar ? const Duration(seconds: 1) : Duration.zero,
+              curve: Curves.linear,
+              builder: (context, v, _) => FractionallySizedBox(
+                widthFactor: v.clamp(0.0, 1.0),
+                heightFactor: 1,
+                child: ColoredBox(color: FitColors.accent),
+              ),
+            ),
           ),
         ],
       );
@@ -299,6 +457,7 @@ class _QrPaseState extends State<_QrPase> {
 }
 
 /// Punto verde que parpadea: indica a recepción que el pase está "en vivo".
+/// Con movimiento reducido queda fijo (el reloj sigue probando que es en vivo).
 class _PuntoEnVivo extends StatefulWidget {
   const _PuntoEnVivo();
 
@@ -307,8 +466,17 @@ class _PuntoEnVivo extends StatefulWidget {
 }
 
 class _PuntoEnVivoState extends State<_PuntoEnVivo> with SingleTickerProviderStateMixin {
-  late final _anim = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
-    ..repeat(reverse: true);
+  late final _anim = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (sinMovimiento(context)) {
+      _anim.value = 1;
+    } else if (!_anim.isAnimating) {
+      _anim.repeat(reverse: true);
+    }
+  }
 
   @override
   void dispose() {
@@ -321,9 +489,9 @@ class _PuntoEnVivoState extends State<_PuntoEnVivo> with SingleTickerProviderSta
     return FadeTransition(
       opacity: Tween(begin: 0.25, end: 1.0).animate(_anim),
       child: Container(
-        width: 9,
-        height: 9,
-        decoration: const BoxDecoration(color: FitColors.ok, shape: BoxShape.circle),
+        width: 8,
+        height: 8,
+        decoration: const BoxDecoration(color: _Boleto.alDia, shape: BoxShape.circle),
       ),
     );
   }

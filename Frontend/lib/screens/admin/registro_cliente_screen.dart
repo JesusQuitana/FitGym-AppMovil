@@ -89,7 +89,7 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: FitColors.surface,
-        icon: const Icon(Icons.check_circle, color: FitColors.ok, size: 48),
+        icon: Icon(Icons.check_circle, color: FitColors.ok, size: 48),
         title: const Text('Cliente registrado'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -97,14 +97,14 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
             Text(
               'Entrega este código a ${c.nombre}. Con él y su correo podrá ingresar a la app desde su casa.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: FitColors.textMuted, height: 1.4),
+              style: TextStyle(color: FitColors.textMuted, height: 1.4),
             ),
             const SizedBox(height: 18),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
                 color: FitColors.primary.withAlpha(35),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(2),
               ),
               child: Text(
                 c.codigo,
@@ -181,13 +181,13 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
             gap,
             Material(
               color: FitColors.surfaceHigh,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(2),
               child: ListTile(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
                 leading: const Icon(Icons.calendar_month_outlined),
-                title: const Text('Fecha de pago', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
+                title: Text('Fecha de pago', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
                 subtitle: Text(fechaLarga(_fechaPago),
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                    style: TextStyle(color: FitColors.ink, fontSize: 16, fontWeight: FontWeight.w600)),
                 trailing: const Icon(Icons.edit_calendar),
                 onTap: _elegirFecha,
               ),
@@ -221,14 +221,14 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
               child: FilledButton.icon(
                 onPressed: _guardando ? null : _guardar,
                 style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
                   textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 icon: _guardando
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: FitColors.background),
                       )
                     : const Icon(Icons.how_to_reg),
                 label: const Text('Registrar y dar acceso'),
@@ -251,7 +251,7 @@ class _Seccion extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
         text.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           color: FitColors.textMuted,
           fontSize: 12,
           fontWeight: FontWeight.w700,

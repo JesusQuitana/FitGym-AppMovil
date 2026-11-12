@@ -224,6 +224,30 @@ class Rutina {
 
   static String textoDias(Set<int> dias) => (dias.toList()..sort()).map((d) => nombresDias[d - 1]).join(',');
 
+  static const _diasCortos = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+  /// Días para leer de un vistazo: "Lun y Jue", "Lun, Mié y Vie".
+  static String textoDiasCorto(Set<int> dias) {
+    if (dias.isEmpty) return 'Sin día fijo';
+    if (dias.length == 7) return 'Todos los días';
+    final nombres = (dias.toList()..sort()).map((d) => _diasCortos[d - 1]).toList();
+    if (nombres.length == 1) return nombres.first;
+    return '${nombres.sublist(0, nombres.length - 1).join(', ')} y ${nombres.last}';
+  }
+
+  /// Tiempo aproximado: unos 40 s por serie (o los segundos del ejercicio, si
+  /// va por tiempo) más [descanso] entre una serie y la siguiente.
+  Duration duracionEstimada({Duration descanso = const Duration(seconds: 90)}) {
+    var trabajo = 0;
+    var series = 0;
+    for (final e in ejercicios) {
+      trabajo += e.series * (e.porTiempo ? e.repeticiones : 40);
+      series += e.series;
+    }
+    if (series == 0) return Duration.zero;
+    return Duration(seconds: trabajo) + descanso * (series - 1);
+  }
+
   static String _sinTildes(String s) => s
       .replaceAll('á', 'a')
       .replaceAll('é', 'e')

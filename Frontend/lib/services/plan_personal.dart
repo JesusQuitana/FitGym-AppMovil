@@ -11,7 +11,7 @@ import 'session.dart';
 enum Lugar {
   casaSinEquipo('En casa, sin equipo', {Equipo.corporal}),
   casaMancuernas('En casa, con mancuernas', {Equipo.corporal, Equipo.mancuernas}),
-  gimnasio('En un gimnasio', {Equipo.corporal, Equipo.mancuernas, Equipo.gimnasio});
+  gimnasio('En un gimnasio', {Equipo.corporal, Equipo.barra, Equipo.mancuernas, Equipo.gimnasio});
 
   const Lugar(this.etiqueta, this.equipos);
   final String etiqueta;
@@ -135,24 +135,46 @@ class PlanPersonal {
   static OpcionEjercicio opcion(EjercicioWger e) => OpcionEjercicio.deWger(e);
 
   /// Equipo disponible según dónde entrena hoy: en el gimnasio, todo; en
-  /// casa, el de su perfil (si su perfil es "gimnasio" o no tiene, sin equipo).
-  static Set<Equipo> equipoHoy(PerfilEntrenamiento? p, LugarHoy hoy) {
-    if (hoy == LugarHoy.gimnasio) return Lugar.gimnasio.equipos;
-    final casa = p?.lugar;
-    return (casa == null || casa == Lugar.gimnasio ? Lugar.casaSinEquipo : casa).equipos;
+  /// casa, el de su perfil (si su perfil es "gimnasio" o no tiene, sin equipo);
+  /// al aire libre, peso corporal y la barra o paralelas si el parque las tiene.
+  static Set<Equipo> equipoHoy(PerfilEntrenamiento? p, LugarHoy hoy, {bool parqueConBarras = true}) {
+    switch (hoy) {
+      case LugarHoy.gimnasio:
+        return Lugar.gimnasio.equipos;
+      case LugarHoy.aireLibre:
+        return {Equipo.corporal, if (parqueConBarras) Equipo.barra};
+      case LugarHoy.casa:
+        final casa = p?.lugar;
+        return (casa == null || casa == Lugar.gimnasio ? Lugar.casaSinEquipo : casa).equipos;
+    }
   }
 
   /// Ejercicios que puede hacer hoy: según el equipo del lugar y sus molestias.
-  static List<EjercicioWger> aptosHoy(PerfilEntrenamiento? p, LugarHoy hoy, List<EjercicioWger> todos) {
-    final equipo = equipoHoy(p, hoy);
+  static List<EjercicioWger> aptosHoy(PerfilEntrenamiento? p, LugarHoy hoy, List<EjercicioWger> todos,
+      {bool parqueConBarras = true}) {
+    final equipo = equipoHoy(p, hoy, parqueConBarras: parqueConBarras);
     final lesiones = p?.lesiones ?? const <Lesion>{};
     return todos.where((e) => equipo.contains(e.equipo) && e.evitarCon.intersection(lesiones).isEmpty).toList();
   }
 
-  /// Si una rutina necesita equipo de gimnasio (máquinas, barras, poleas).
+  /// Si una rutina necesita equipo de gimnasio (máquinas, barras, poleas,
+  /// también la barra de dominadas, que en casa no suele haber).
   static bool necesitaGimnasio(Rutina r, Map<int, EjercicioWger> wger) =>
       r.esDelGimnasio ||
-      r.ejercicios.any((e) => e.maquinaId != null || wger[e.wgerId]?.equipo == Equipo.gimnasio);
+      r.ejercicios.any((e) {
+        final equipo = wger[e.wgerId]?.equipo;
+        return e.maquinaId != null || equipo == Equipo.gimnasio || equipo == Equipo.barra;
+      });
+
+  /// Si a una rutina le falta equipo que no está en [hay] (por ejemplo, al
+  /// aire libre). Las rutinas del gimnasio y las que usan sus máquinas
+  /// siempre necesitan el gimnasio.
+  static bool faltaEquipo(Rutina r, Map<int, EjercicioWger> wger, Set<Equipo> hay) =>
+      r.esDelGimnasio ||
+      r.ejercicios.any((e) {
+        final equipo = wger[e.wgerId]?.equipo;
+        return e.maquinaId != null || (equipo != null && !hay.contains(equipo));
+      });
 
   /// Convierte una plantilla en rutinas: reparte los días entre los bloques y
   /// elige para cada músculo el ejercicio que permite el perfil, evitando
@@ -162,7 +184,7 @@ class PlanPersonal {
     final (series, reps, segundos) = volumen(p);
     final cantidad = ejerciciosPorSesion(p.minutos);
     // Con más equipo disponible se prefieren los ejercicios con carga.
-    final preferencia = [Equipo.gimnasio, Equipo.mancuernas, Equipo.corporal];
+    final preferencia = [Equipo.gimnasio, Equipo.mancuernas, Equipo.barra, Equipo.corporal];
     final base = DateTime.now().microsecondsSinceEpoch;
 
     final rutinas = <Rutina>[];

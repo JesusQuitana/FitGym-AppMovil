@@ -61,7 +61,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _guardar();
                 },
                 title: const Text('Modo demo'),
-                subtitle: const Text(
+                subtitle: Text(
                   'Usa datos de ejemplo sin necesidad del servidor.',
                   style: TextStyle(color: FitColors.textMuted),
                 ),
@@ -77,7 +77,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   hint: 'http://192.168.1.50:8080'),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               '• Emulador Android: http://10.0.2.2:8080\n'
               '• Teléfono físico: http://<IP de la PC en la red Wi-Fi>:8080\n'
               '• Con el modo demo activo esta URL no se usa.',

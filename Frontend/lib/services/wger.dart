@@ -20,8 +20,8 @@ class Wger {
 
   static const _api = 'https://wger.de/api/v2/exerciseinfo/?format=json&limit=200';
   static const _asset = 'assets/wger/catalogo.json';
-  static const _kCatalogo = 'wger_catalogo';
-  static const _kFecha = 'wger_catalogo_fecha';
+  static const _kCatalogo = 'wger_catalogo_v2';
+  static const _kFecha = 'wger_catalogo_fecha_v2';
   static const _vigencia = Duration(days: 7);
   static const _idEspanol = 4;
   static const _idIngles = 2;
@@ -38,20 +38,73 @@ class Wger {
     'Shoulders': 'Hombros',
   };
 
-  static const credito = 'Textos e imágenes: wger.de · CC-BY-SA';
+  static const credito = 'Textos e imágenes: wger.de · ExerciseDB · CC-BY-SA';
 
   static List<EjercicioWger>? _catalogo;
   static Map<int, EjercicioWger> _porId = {};
 
   static Future<List<EjercicioWger>> catalogo() async {
     if (_catalogo != null) return _catalogo!;
+    final base = _parsear(await rootBundle.loadString(_asset));
     String? guardado;
     try {
       guardado = (await SharedPreferences.getInstance()).getString(_kCatalogo);
     } catch (_) {}
-    _usar(_parsear(guardado ?? await rootBundle.loadString(_asset)));
-    unawaited(_actualizarSiHaceFalta());
+    if (guardado != null) {
+      _usar(_combinarConBase(_parsear(guardado), base));
+    } else {
+      _usar(base);
+    }
+    unawaited(_actualizarSiHaceFalta(base));
     return _catalogo!;
+  }
+
+  /// Conserva las animaciones de ExerciseDB y fotos paso a paso incluidas en
+  /// el catálogo base de la app cuando wger se sincroniza en segundo plano.
+  static List<EjercicioWger> _combinarConBase(
+    List<EjercicioWger> descargados,
+    List<EjercicioWger> base,
+  ) {
+    final basePorId = {for (final e in base) e.id: e};
+    final vistos = <int>{};
+    final resultado = <EjercicioWger>[];
+
+    for (final d in descargados) {
+      vistos.add(d.id);
+      final b = basePorId[d.id];
+      if (b == null) {
+        resultado.add(d);
+        continue;
+      }
+      final imagenesCombinadas = <String>[
+        ...b.imagenes,
+        for (final img in d.imagenes)
+          if (!b.imagenes.contains(img)) img,
+      ];
+      final videosCombinados = <String>[
+        ...b.videos,
+        for (final vid in d.videos)
+          if (!b.videos.contains(vid) && !vid.toLowerCase().endsWith('.mov')) vid,
+      ];
+      resultado.add(EjercicioWger(
+        id: d.id,
+        nombre: b.nombre.isNotEmpty ? b.nombre : d.nombre,
+        nombreEn: b.nombreEn.isNotEmpty ? b.nombreEn : d.nombreEn,
+        descripcion: b.descripcion.isNotEmpty ? b.descripcion : d.descripcion,
+        musculo: b.musculo.isNotEmpty ? b.musculo : d.musculo,
+        equipos: b.equipos.isNotEmpty ? b.equipos : d.equipos,
+        imagenes: imagenesCombinadas,
+        videos: videosCombinados,
+        autorImagen: b.autorImagen.isNotEmpty ? b.autorImagen : d.autorImagen,
+      ));
+    }
+
+    for (final b in base) {
+      if (!vistos.contains(b.id)) {
+        resultado.add(b);
+      }
+    }
+    return resultado;
   }
 
   static Future<EjercicioWger?> porId(int id) async {
@@ -73,16 +126,17 @@ class Wger {
   static List<EjercicioWger> _parsear(String json) =>
       (jsonDecode(json) as List).map((e) => EjercicioWger.fromJson(Map<String, dynamic>.from(e as Map))).toList();
 
-  static Future<void> _actualizarSiHaceFalta() async {
+  static Future<void> _actualizarSiHaceFalta(List<EjercicioWger> base) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final fecha = DateTime.tryParse(prefs.getString(_kFecha) ?? '');
       if (fecha != null && DateTime.now().difference(fecha) < _vigencia) return;
       final nuevos = await descargar();
       if (nuevos.length < 50) return; // respuesta incompleta: se conserva la copia actual
-      await prefs.setString(_kCatalogo, jsonEncode(nuevos.map((e) => e.toJson()).toList()));
+      final combinados = _combinarConBase(nuevos, base);
+      await prefs.setString(_kCatalogo, jsonEncode(combinados.map((e) => e.toJson()).toList()));
       await prefs.setString(_kFecha, DateTime.now().toIso8601String());
-      _usar(nuevos);
+      _usar(combinados);
     } catch (e) {
       debugPrint('No se pudo actualizar el catálogo de wger: $e');
     }

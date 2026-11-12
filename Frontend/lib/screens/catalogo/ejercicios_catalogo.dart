@@ -59,22 +59,29 @@ class _EjerciciosCatalogoState extends State<EjerciciosCatalogo> {
 
   Widget _lista(List<EjercicioWger> todos) {
     final hoy = Session.instance.lugarHoy;
-    final base = _soloAptos ? PlanPersonal.aptosHoy(widget.perfil, hoy, todos) : todos;
+    final base = _soloAptos
+        ? PlanPersonal.aptosHoy(widget.perfil, hoy, todos, parqueConBarras: Session.instance.parqueConBarras)
+        : todos;
     final musculos = todos.map((e) => e.musculo).toSet().toList()..sort();
     final q = _busqueda.trim().toLowerCase();
     final visibles = base
         .where((e) => _musculo == null || e.musculo == _musculo)
         .where((e) => q.isEmpty || e.nombre.toLowerCase().contains(q))
         .toList();
-    final dondeHoy = hoy == LugarHoy.gimnasio
-        ? 'en el gimnasio (todo el equipo)'
-        : 'en casa (${PlanPersonal.equipoHoy(widget.perfil, hoy).map((e) => e.etiqueta.toLowerCase()).join(', ')})';
+    final equipo = PlanPersonal.equipoHoy(widget.perfil, hoy, parqueConBarras: Session.instance.parqueConBarras)
+        .map((e) => e.etiqueta.toLowerCase())
+        .join(', ');
+    final dondeHoy = switch (hoy) {
+      LugarHoy.gimnasio => 'en el gimnasio (todo el equipo)',
+      LugarHoy.casa => 'en casa ($equipo)',
+      LugarHoy.aireLibre => 'al aire libre ($equipo)',
+    };
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         const Text('Ejercicios', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
         const SizedBox(height: 4),
-        Text('${visibles.length} ejercicios · catálogo de wger.de', style: const TextStyle(color: FitColors.textMuted)),
+        Text('${visibles.length} ejercicios · catálogo de wger.de', style: TextStyle(color: FitColors.textMuted)),
         const SizedBox(height: 10),
         TextField(
           onChanged: (v) => setState(() => _busqueda = v),
@@ -85,7 +92,7 @@ class _EjerciciosCatalogoState extends State<EjerciciosCatalogo> {
           value: _soloAptos,
           onChanged: (v) => setState(() => _soloAptos = v),
           title: const Text('Solo los que puedo hacer hoy'),
-          subtitle: Text('Entrenas $dondeHoy', style: const TextStyle(color: FitColors.textMuted, fontSize: 12)),
+          subtitle: Text('Entrenas $dondeHoy', style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
         ),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -108,7 +115,7 @@ class _EjerciciosCatalogoState extends State<EjerciciosCatalogo> {
           OpcionEjercicioTile(
             opcion: PlanPersonal.opcion(e),
             onTap: () => mostrarComoSeHace(context, wgerId: e.id, nombre: e.nombre, musculo: e.musculo),
-            trailing: const Icon(Icons.info_outline, color: FitColors.textMuted),
+            trailing: Icon(Icons.info_outline, color: FitColors.textMuted),
           ),
       ],
     );

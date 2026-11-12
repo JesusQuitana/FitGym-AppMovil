@@ -82,7 +82,7 @@ class _PlantillasScreenState extends State<PlantillasScreen> {
           children: [
             Text(
               '${p.objetivo.etiqueta} · ${p.nivel.etiqueta} · ${p.dias} días de ${p.minutos} min · ${p.lugar.etiqueta.toLowerCase()}',
-              style: const TextStyle(color: FitColors.textMuted),
+              style: TextStyle(color: FitColors.textMuted),
             ),
             const SizedBox(height: 16),
             for (var i = 0; i < _recomendadas.length; i++)
@@ -97,8 +97,8 @@ class _PlantillasScreenState extends State<PlantillasScreen> {
               ),
             if (_otras.isNotEmpty) ...[
               const SizedBox(height: 8),
-              const Padding(
-                padding: EdgeInsets.only(left: 4, bottom: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
                 child: Text('OTRAS QUE ENCAJAN CON TUS DÍAS',
                     style: TextStyle(color: FitColors.textMuted, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
               ),
@@ -152,8 +152,8 @@ class _TarjetaPlantilla extends StatelessWidget {
       child: Material(
         color: FitColors.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: recomendada ? const BorderSide(color: FitColors.primary, width: 1.5) : BorderSide.none,
+          borderRadius: BorderRadius.circular(2),
+          side: recomendada ? BorderSide(color: FitColors.primary, width: 1.5) : BorderSide.none,
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -161,14 +161,14 @@ class _TarjetaPlantilla extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (recomendada)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 6),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
                   child: Text('★ RECOMENDADA',
                       style: TextStyle(color: FitColors.primary, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1)),
                 ),
               Text(plantilla.nombre, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
-              Text(plantilla.descripcion, style: const TextStyle(color: FitColors.textMuted, height: 1.35)),
+              Text(plantilla.descripcion, style: TextStyle(color: FitColors.textMuted, height: 1.35)),
               const SizedBox(height: 10),
               Text(
                 '${rutinas.length} ${rutinas.length == 1 ? 'sesión distinta' : 'sesiones distintas'} · '
@@ -211,7 +211,7 @@ class _Vista extends StatelessWidget {
               Expanded(child: Text(rutina.nombre, style: const TextStyle(fontWeight: FontWeight.w700))),
               Text(
                 (rutina.dias.toList()..sort()).map((d) => Rutina.nombresDias[d - 1].substring(0, 3)).join(' · '),
-                style: const TextStyle(color: FitColors.primary, fontSize: 12, fontWeight: FontWeight.w700),
+                style: TextStyle(color: FitColors.primary, fontSize: 12, fontWeight: FontWeight.w700),
               ),
             ],
           ),
@@ -228,7 +228,7 @@ class _Vista extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(child: Text(e.nombre, style: const TextStyle(fontSize: 13))),
-                  Text(e.resumen, style: const TextStyle(color: FitColors.textMuted, fontSize: 13)),
+                  Text(e.resumen, style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
                 ],
               ),
             ),

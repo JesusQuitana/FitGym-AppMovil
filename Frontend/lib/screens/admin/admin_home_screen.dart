@@ -139,7 +139,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         icon: const Icon(Icons.person_add_alt_1),
         label: const Text('Registrar cliente'),
         backgroundColor: FitColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: FitColors.onPrimary,
       ),
       body: RefreshIndicator(
         onRefresh: _cargar,
@@ -149,32 +149,32 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
           children: [
             Material(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(2),
               clipBehavior: Clip.antiAlias,
               child: Ink(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [FitColors.primary, Color(0xFFFF8A3D)]),
+                decoration: BoxDecoration(
+                  color: FitColors.block,
                 ),
                 child: InkWell(
                   onTap: _escanear,
-                  child: const Padding(
-                    padding: EdgeInsets.all(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        Icon(Icons.qr_code_scanner, color: Colors.white, size: 36),
-                        SizedBox(width: 14),
+                        Icon(Icons.qr_code_scanner, color: FitColors.accent, size: 36),
+                        const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Control de acceso',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17)),
+                              const Text('Control de acceso',
+                                  style: TextStyle(color: FitColors.papel, fontWeight: FontWeight.w800, fontSize: 17)),
                               Text('Escanear el QR de un afiliado en la entrada',
-                                  style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                  style: TextStyle(color: FitColors.onBlockMuted, fontSize: 13)),
                             ],
                           ),
                         ),
-                        Icon(Icons.chevron_right, color: Colors.white),
+                        const Icon(Icons.chevron_right, color: FitColors.papel),
                       ],
                     ),
                   ),
@@ -275,9 +275,9 @@ class _Acceso extends StatelessWidget {
     return Expanded(
       child: Material(
         color: FitColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(2),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(2),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
@@ -286,7 +286,7 @@ class _Acceso extends StatelessWidget {
                 Icon(icon, color: FitColors.primary),
                 const SizedBox(width: 10),
                 Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
-                const Icon(Icons.chevron_right, color: FitColors.textMuted),
+                Icon(Icons.chevron_right, color: FitColors.textMuted),
               ],
             ),
           ),
@@ -309,7 +309,7 @@ class _Stat extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(8, 10, 8, 12),
         decoration: BoxDecoration(
           color: FitColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(2),
         ),
         child: Column(
           children: [
@@ -325,7 +325,7 @@ class _Stat extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: FitColors.textMuted, fontSize: 11),
+              style: TextStyle(color: FitColors.textMuted, fontSize: 11),
             ),
           ],
         ),
@@ -345,9 +345,9 @@ class _ClienteTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: FitColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(2),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(2),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -376,7 +376,7 @@ class _ClienteTile extends StatelessWidget {
                       Text(
                         cliente.correo,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: FitColors.textMuted, fontSize: 13),
+                        style: TextStyle(color: FitColors.textMuted, fontSize: 13),
                       ),
                       const SizedBox(height: 4),
                       Row(
@@ -385,7 +385,7 @@ class _ClienteTile extends StatelessWidget {
                           const Spacer(),
                           Text(
                             'Pago ${fechaCorta(cliente.fechaPago)}',
-                            style: const TextStyle(color: FitColors.textMuted, fontSize: 12),
+                            style: TextStyle(color: FitColors.textMuted, fontSize: 12),
                           ),
                         ],
                       ),
@@ -415,7 +415,7 @@ class _Vacio extends StatelessWidget {
         children: [
           Icon(icon, size: 48, color: FitColors.textMuted),
           const SizedBox(height: 12),
-          Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: FitColors.textMuted)),
+          Text(texto, textAlign: TextAlign.center, style: TextStyle(color: FitColors.textMuted)),
           if (accion != null) accion!,
         ],
       ),

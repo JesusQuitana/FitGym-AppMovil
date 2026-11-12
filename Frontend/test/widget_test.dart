@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,11 +17,15 @@ import 'package:fitgym/models/sesion.dart';
 import 'package:fitgym/services/historial.dart';
 import 'package:fitgym/models/rutina_gym.dart';
 import 'package:fitgym/screens/inicio.dart';
+import 'package:fitgym/screens/perfil_tab.dart';
 import 'package:fitgym/services/gym_rutinas.dart';
 import 'package:fitgym/services/plan_personal.dart';
 import 'package:fitgym/services/rutinas_store.dart';
 import 'package:fitgym/services/session.dart';
 import 'package:fitgym/services/totp.dart';
+import 'package:fitgym/theme.dart';
+import 'package:fitgym/widgets/como_se_hace.dart';
+import 'package:fitgym/widgets/editorial.dart';
 
 void main() {
   // Para leer el catálogo de wger incluido en la app (rootBundle).
@@ -194,11 +201,130 @@ void main() {
     expect(prefs.containsKey('historial_7'), isFalse);
   });
 
+  test('"Al aire libre" y si el parque tiene barras se recuerdan', () async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    await Session.instance.load();
+    expect(Session.instance.parqueConBarras, isTrue); // la mayoría de los parques con equipos tienen barra
+
+    await Session.instance.saveLugarHoy(LugarHoy.aireLibre);
+    await Session.instance.saveParqueConBarras(false);
+    await Session.instance.load();
+    expect(Session.instance.lugarHoy, LugarHoy.aireLibre);
+    expect(Session.instance.parqueConBarras, isFalse);
+  });
+
   test('La URL guardada del puerto 3000 pasa al 8080', () async {
     SharedPreferences.setMockInitialValues({'base_url': 'http://10.0.2.2:3000'});
     FlutterSecureStorage.setMockInitialValues({});
     await Session.instance.load();
     expect(Session.instance.baseUrl, 'http://10.0.2.2:8080');
+  });
+
+  test('El tema sigue al sistema por defecto y la elección manual persiste', () async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    await Session.instance.load();
+    expect(Session.instance.tema.value, ThemeMode.system);
+
+    await Session.instance.saveTema(ThemeMode.dark);
+    await Session.instance.load(); // como al reabrir la app
+    expect(Session.instance.tema.value, ThemeMode.dark);
+
+    await Session.instance.saveTema(ThemeMode.system);
+    await Session.instance.load();
+    expect(Session.instance.tema.value, ThemeMode.system);
+  });
+
+  testWidgets('La app usa el tema del sistema salvo que se elija uno', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await Session.instance.load();
+    await tester.pumpWidget(FitGymApp(inicio: await pantallaInicial()));
+    await tester.pumpAndSettle();
+    Color fondo() => Theme.of(tester.element(find.byType(Scaffold).first)).scaffoldBackgroundColor;
+    expect(fondo(), FitColors.temaOscuro.fondo);
+    expect(FitColors.background, FitColors.temaOscuro.fondo);
+
+    await Session.instance.saveTema(ThemeMode.light);
+    await tester.pumpAndSettle();
+    expect(fondo(), FitColors.temaClaro.fondo);
+    expect(FitColors.background, FitColors.temaClaro.fondo);
+  });
+
+  testWidgets('Con "reducir movimiento" las entradas aparecen sin animar', (tester) async {
+    Widget app(bool reducir) => MediaQuery(
+          data: MediaQueryData(disableAnimations: reducir),
+          child: const Directionality(
+            textDirection: TextDirection.ltr,
+            child: Column(children: [Golpe(child: Text('60 KG')), Barrido(child: Text('HOY'))]),
+          ),
+        );
+    double opacidad() => tester.widget<Opacity>(find.ancestor(of: find.text('60 KG'), matching: find.byType(Opacity))).opacity;
+
+    await tester.pumpWidget(app(true));
+    expect(opacidad(), 1);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(app(false));
+    expect(opacidad(), 0); // con movimiento, empieza invisible y entra
+    await tester.pumpAndSettle();
+    expect(opacidad(), 1);
+  });
+
+  testWidgets('Se puede tocar un bloque mientras todavía está entrando', (tester) async {
+    var toques = 0;
+    await tester.pumpWidget(Directionality(
+      textDirection: TextDirection.ltr,
+      child: Center(
+        child: Barrido(
+          retraso: const Duration(milliseconds: 300),
+          child: GestureDetector(
+            onTap: () => toques++,
+            child: const SizedBox(width: 200, height: 60, child: Text('Mostrar mi pase')),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('Mostrar mi pase'), warnIfMissed: false); // antes de terminar de entrar
+    expect(toques, 1);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('En Perfil se elige el tema y queda guardado', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    await Session.instance.load();
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: PerfilTab(perfil: null, abrir: (_) async {}, onPlantillas: () {})),
+    ));
+    await tester.scrollUntilVisible(find.text('Oscuro'), 200);
+    expect(find.text('Sigue el tema de tu teléfono.'), findsOneWidget);
+
+    await tester.tap(find.text('Oscuro'));
+    await tester.pumpAndSettle();
+    expect(Session.instance.tema.value, ThemeMode.dark);
+    expect(find.textContaining('Se mantiene aunque el teléfono cambie de tema'), findsOneWidget);
+    expect((await SharedPreferences.getInstance()).getString('tema'), 'dark');
+  });
+
+  test('Días escritos y duración estimada de una rutina', () {
+    expect(Rutina.textoDiasCorto({1, 4}), 'Lun y Jue');
+    expect(Rutina.textoDiasCorto({5, 1, 3}), 'Lun, Mié y Vie');
+    expect(Rutina.textoDiasCorto({6}), 'Sáb');
+    expect(Rutina.textoDiasCorto({}), 'Sin día fijo');
+    expect(Rutina.textoDiasCorto({1, 2, 3, 4, 5, 6, 7}), 'Todos los días');
+
+    // 3 × 10 reps (40 s por serie) + 2 × 30 s, con 90 s de descanso entre las 5 series (4 descansos).
+    const r = Rutina(id: 'r', nombre: 'X', dias: {1}, ejercicios: [
+      EjercicioRutina(maquina: 'Sentadilla', musculo: 'Piernas', series: 3, repeticiones: 10),
+      EjercicioRutina(maquina: 'Plancha', musculo: 'Abdomen', series: 2, repeticiones: 30, medidoEnSegundos: true),
+    ]);
+    expect(r.duracionEstimada(), const Duration(seconds: 3 * 40 + 2 * 30 + 4 * 90));
+    expect(r.duracionEstimada(descanso: const Duration(seconds: 60)), const Duration(seconds: 3 * 40 + 2 * 30 + 4 * 60));
+    expect(const Rutina(id: 'v', nombre: 'Vacía', dias: {}, ejercicios: []).duracionEstimada(), Duration.zero);
   });
 
   test('Días del backend en texto libre', () {
@@ -276,6 +402,14 @@ void main() {
         );
     final hoy = DateTime(2026, 10, 30); // viernes
 
+    test('Última vez que se hizo una rutina y si ya se hizo esta semana', () {
+      final s = [sesion(DateTime(2026, 10, 20)), sesion(DateTime(2026, 10, 27), rutina: 'r2'), sesion(DateTime(2026, 10, 22))];
+      expect(Historial.ultimaVez(s, 'r1'), DateTime(2026, 10, 22));
+      expect(Historial.ultimaVez(s, 'nunca'), isNull);
+      expect(Historial.hechaEstaSemana(s, 'r2', hoy: hoy), isTrue); // martes 27, misma semana
+      expect(Historial.hechaEstaSemana(s, 'r1', hoy: hoy), isFalse); // la semana pasada
+    });
+
     test('Racha de semanas seguidas', () {
       final s = [sesion(DateTime(2026, 10, 14)), sesion(DateTime(2026, 10, 20)), sesion(DateTime(2026, 10, 28))];
       expect(Historial.rachaSemanas(s, hoy: hoy), 3);
@@ -340,6 +474,44 @@ void main() {
       expect(plancha.porTiempo, isTrue);
     });
 
+    test('La barra de dominadas y las paralelas son su propio equipo', () {
+      const conBarra = EjercicioWger(id: 4, nombre: 'Remo invertido', descripcion: 'x', musculo: 'Espalda', equipos: ['Pull-up bar']);
+      expect(conBarra.equipo, Equipo.barra);
+      const dominadas = EjercicioWger(id: 5, nombre: 'Dominadas', descripcion: 'x', musculo: 'Espalda');
+      expect(dominadas.equipo, Equipo.barra); // sin equipo listado: se deduce del nombre
+      const fondos = EjercicioWger(id: 6, nombre: 'Fondos en paralelas', descripcion: 'x', musculo: 'Pecho');
+      expect(fondos.equipo, Equipo.barra);
+      const sentadilla = EjercicioWger(id: 7, nombre: 'Sentadilla con barra', descripcion: 'x', musculo: 'Piernas', equipos: ['Barbell']);
+      expect(sentadilla.equipo, Equipo.gimnasio); // la barra con discos sigue siendo de gimnasio
+    });
+
+    test('Al aire libre: peso corporal, más barras si el parque las tiene', () {
+      expect(PlanPersonal.equipoHoy(null, LugarHoy.aireLibre), {Equipo.corporal, Equipo.barra});
+      expect(PlanPersonal.equipoHoy(null, LugarHoy.aireLibre, parqueConBarras: false), {Equipo.corporal});
+      // En el gimnasio también hay barras; en casa, no.
+      expect(PlanPersonal.equipoHoy(null, LugarHoy.gimnasio), contains(Equipo.barra));
+      expect(PlanPersonal.equipoHoy(null, LugarHoy.casa), isNot(contains(Equipo.barra)));
+
+      const dominadas = EjercicioWger(id: 5, nombre: 'Dominadas', descripcion: 'x', musculo: 'Espalda');
+      const curl = EjercicioWger(id: 2, nombre: 'Curl', descripcion: 'x', musculo: 'Brazos', equipos: ['Dumbbell']);
+      const flexiones = EjercicioWger(id: 8, nombre: 'Flexiones', descripcion: 'x', musculo: 'Pecho', equipos: ['none (bodyweight exercise)']);
+      final todos = [dominadas, curl, flexiones];
+      expect(PlanPersonal.aptosHoy(null, LugarHoy.aireLibre, todos), [dominadas, flexiones]);
+      expect(PlanPersonal.aptosHoy(null, LugarHoy.aireLibre, todos, parqueConBarras: false), [flexiones]);
+
+      EjercicioRutina ej(EjercicioWger e) =>
+          EjercicioRutina(maquina: e.nombre, musculo: e.musculo, series: 3, repeticiones: 10, wgerId: e.id);
+      final wger = {for (final e in todos) e.id: e};
+      final parque = Rutina(id: 'p', nombre: 'Parque', dias: const {1}, ejercicios: [ej(dominadas), ej(flexiones)]);
+      final conMancuernas = Rutina(id: 'm', nombre: 'Brazos', dias: const {1}, ejercicios: [ej(curl)]);
+      final aireLibre = PlanPersonal.equipoHoy(null, LugarHoy.aireLibre);
+      expect(PlanPersonal.faltaEquipo(parque, wger, aireLibre), isFalse);
+      expect(PlanPersonal.faltaEquipo(conMancuernas, wger, aireLibre), isTrue);
+      expect(PlanPersonal.faltaEquipo(parque, wger, {Equipo.corporal}), isTrue); // parque sin barras
+      // En casa no hay barra: una rutina con dominadas sigue marcada como antes.
+      expect(PlanPersonal.necesitaGimnasio(parque, wger), isTrue);
+    });
+
     test('Convierte un registro de la API aplicando el filtro', () {
       Map<String, dynamic> registro({bool conEs = true, bool conImagen = true}) => {
             'id': 9,
@@ -370,6 +542,43 @@ void main() {
     test('Referencia a wger en la descripción del backend', () {
       expect(GymRutinas.wgerIdDe(const EjercicioGym(nombre: 'Press', descripcion: 'wger:73')), 73);
       expect(GymRutinas.wgerIdDe(const EjercicioGym(nombre: 'Viejo', descripcion: 'Con barra')), isNull);
+    });
+
+    test('Prioriza animaciones GIF de ExerciseDB y videos MP4, y neutraliza Dolby Vision (dvvC → free)', () async {
+      final ordenados = ordenarVideosWger([
+        'https://wger.de/media/exercise-video/371/32601896-b84a-49bf-ae8a-b27a8f57ab21.MOV',
+        'https://wger.de/media/exercise-video/73/2bdb390c-312c-4497-a722-5eed2c823e5a.MOV',
+        'https://wger.de/media/exercise-video/73/cfb72002-898f-443a-a124-a0bce8a2e6ad.MP4',
+        'https://static.exercisedb.dev/media/EIeI8Vf.gif',
+      ]);
+      expect(esAnimacionGif(ordenados.first), isTrue);
+      expect(ordenados[1], endsWith('.MP4'));
+      expect(ordenados.last, endsWith('32601896-b84a-49bf-ae8a-b27a8f57ab21.MOV'));
+
+      // Verifica que el catálogo incluya las animaciones de ExerciseDB y no tenga archivos .MOV rotos.
+      final catalogo = await Wger.catalogo();
+      expect(catalogo.any((e) => e.videos.any(esAnimacionGif)), isTrue);
+      expect(catalogo.any((e) => e.videos.any((v) => v.toLowerCase().endsWith('.mov'))), isFalse);
+
+      // Caja dvvC real de 32 bytes (0x00000020 + 'dvvC' + 24 bytes de payload)
+      // partida en mitad de dos paquetes TCP para verificar la ventana deslizante.
+      final original = Uint8List.fromList([
+        0x11, 0x22, 0x33,
+        0x00, 0x00, 0x00, 0x20, 0x64, 0x76, // 'dv' al final del primer paquete
+        0x76, 0x43, 0x01, 0x00, 0x10, 0x2d, // 'vC' al inicio del segundo paquete
+        0x44, 0x55,
+      ]);
+      final trozos = Stream<List<int>>.fromIterable([
+        original.sublist(0, 9),
+        original.sublist(9),
+      ]);
+      final salida = <int>[];
+      await for (final c in transformarStreamMp4(trozos)) {
+        salida.addAll(c);
+      }
+      expect(salida.length, original.length);
+      // 'dvvC' (0x64, 0x76, 0x76, 0x43) pasa a 'free' (0x66, 0x72, 0x65, 0x65)
+      expect(salida.sublist(3, 11), [0x00, 0x00, 0x00, 0x20, 0x66, 0x72, 0x65, 0x65]);
     });
   });
 }

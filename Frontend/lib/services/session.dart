@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart' show ThemeMode, ValueNotifier;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,7 +9,7 @@ import '../models/cliente.dart';
 
 /// Dónde entrena hoy la persona. Se elige en Inicio con un toque y cambia
 /// qué rutinas y ejercicios se sugieren; no cierra ni abre sesiones.
-enum LugarHoy { gimnasio, casa }
+enum LugarHoy { gimnasio, casa, aireLibre }
 
 /// Configuración y sesión persistidas en el teléfono. El cliente autenticado
 /// se guarda en caché para poder mostrar el QR aun sin cobertura en recepción.
@@ -27,6 +28,8 @@ class Session {
   static const _kTotp = 'totp_secret';
   static const _kBienvenida = 'bienvenida_hecha';
   static const _kLugarHoy = 'lugar_hoy';
+  static const _kTema = 'tema';
+  static const _kParqueBarras = 'parque_barras';
 
   /// Clave de versiones anteriores, que trataban gimnasio y casa como modos.
   static const _kModoAnterior = 'modo_uso';
@@ -85,6 +88,27 @@ class Session {
     await _prefs.setString(_kLugarHoy, l.name);
   }
 
+  /// Si el parque donde entrena al aire libre tiene barra o paralelas.
+  bool parqueConBarras = true;
+
+  Future<void> saveParqueConBarras(bool v) async {
+    parqueConBarras = v;
+    await _prefs.setBool(_kParqueBarras, v);
+  }
+
+  /// Tema de la app: sigue al sistema hasta que la persona elige uno, y esa
+  /// elección se guarda. La app escucha este valor para cambiar en vivo.
+  final tema = ValueNotifier<ThemeMode>(ThemeMode.system);
+
+  Future<void> saveTema(ThemeMode m) async {
+    tema.value = m;
+    if (m == ThemeMode.system) {
+      await _prefs.remove(_kTema);
+    } else {
+      await _prefs.setString(_kTema, m.name);
+    }
+  }
+
   /// Hora corregida con la del servidor; es la que se usa para el TOTP.
   DateTime get ahora => DateTime.now().add(relojOffset);
 
@@ -97,6 +121,8 @@ class Session {
     bienvenidaHecha = _prefs.getBool(_kBienvenida) ?? _prefs.containsKey(_kModoAnterior);
     lugarHoy = LugarHoy.values.where((l) => l.name == _prefs.getString(_kLugarHoy)).firstOrNull ??
         (_prefs.getString(_kModoAnterior) == 'personal' ? LugarHoy.casa : LugarHoy.gimnasio);
+    parqueConBarras = _prefs.getBool(_kParqueBarras) ?? true;
+    tema.value = ThemeMode.values.where((m) => m.name == _prefs.getString(_kTema)).firstOrNull ?? ThemeMode.system;
     // Se parte de cero: lo que no esté guardado no debe quedar de antes.
     cliente = null;
     totpSecret = null;

@@ -101,7 +101,7 @@ class _AsistenteScreenState extends State<AsistenteScreen> {
             child: FilledButton(
               onPressed: _puedeSeguir ? _siguiente : null,
               style: FilledButton.styleFrom(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
                 textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
               child: Text(_paso == _totalPasos - 1 ? 'Ver mis plantillas' : 'Siguiente'),
@@ -146,7 +146,7 @@ class _AsistenteScreenState extends State<AsistenteScreen> {
         2 => _Paso(
             titulo: '¿Cuánto tiempo tienes?',
             hijos: [
-              const Text('Días por semana', style: TextStyle(color: FitColors.textMuted)),
+              Text('Días por semana', style: TextStyle(color: FitColors.textMuted)),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 10,
@@ -162,7 +162,7 @@ class _AsistenteScreenState extends State<AsistenteScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              const Text('Duración de cada sesión', style: TextStyle(color: FitColors.textMuted)),
+              Text('Duración de cada sesión', style: TextStyle(color: FitColors.textMuted)),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 10,
@@ -246,7 +246,7 @@ class _Paso extends StatelessWidget {
         Text(titulo, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
         if (subtitulo != null) ...[
           const SizedBox(height: 8),
-          Text(subtitulo!, style: const TextStyle(color: FitColors.textMuted, height: 1.4)),
+          Text(subtitulo!, style: TextStyle(color: FitColors.textMuted, height: 1.4)),
         ],
         const SizedBox(height: 20),
         ...hijos,
@@ -276,11 +276,11 @@ class _Tarjeta extends StatelessWidget {
       child: Material(
         color: seleccionada ? FitColors.primary.withAlpha(35) : FitColors.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(2),
           side: BorderSide(color: seleccionada ? FitColors.primary : Colors.transparent, width: 1.5),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(2),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -294,11 +294,11 @@ class _Tarjeta extends StatelessWidget {
                     children: [
                       Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                       const SizedBox(height: 2),
-                      Text(detalle, style: const TextStyle(color: FitColors.textMuted, fontSize: 13)),
+                      Text(detalle, style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
                     ],
                   ),
                 ),
-                if (seleccionada) const Icon(Icons.check_circle, color: FitColors.primary),
+                if (seleccionada) Icon(Icons.check_circle, color: FitColors.primary),
               ],
             ),
           ),

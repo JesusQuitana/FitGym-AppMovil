@@ -83,7 +83,7 @@ class _MaquinasCatalogoState extends State<MaquinasCatalogo> {
               const SizedBox(height: 14),
               Text(
                 m.descripcion.isEmpty ? 'Sin descripción.' : m.descripcion,
-                style: const TextStyle(color: FitColors.textMuted, height: 1.4),
+                style: TextStyle(color: FitColors.textMuted, height: 1.4),
               ),
             ],
           ),
@@ -107,7 +107,7 @@ class _MaquinasCatalogoState extends State<MaquinasCatalogo> {
           const SizedBox(height: 4),
           Text(
             _cargando ? 'Cargando…' : '$disponibles de ${_maquinas.length} en servicio',
-            style: const TextStyle(color: FitColors.textMuted),
+            style: TextStyle(color: FitColors.textMuted),
           ),
           const SizedBox(height: 14),
           TextField(

@@ -98,7 +98,7 @@ class _MaquinasAdminScreenState extends State<MaquinasAdminScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _editar(),
         backgroundColor: FitColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: FitColors.onPrimary,
         icon: const Icon(Icons.add),
         label: const Text('Nueva máquina'),
       ),
@@ -253,11 +253,11 @@ class _EditorMaquinaState extends State<_EditorMaquina> {
                 ],
               ),
               if (_disponibilidad == 0)
-                const Text('Con 0 unidades se muestra como "Fuera de servicio".',
+                Text('Con 0 unidades se muestra como "Fuera de servicio".',
                     style: TextStyle(color: FitColors.warning, fontSize: 12)),
               if (_error != null) ...[
                 const SizedBox(height: 10),
-                Text(_error!, style: const TextStyle(color: FitColors.danger, fontSize: 13)),
+                Text(_error!, style: TextStyle(color: FitColors.danger, fontSize: 13)),
               ],
               const SizedBox(height: 18),
               SizedBox(
@@ -265,8 +265,8 @@ class _EditorMaquinaState extends State<_EditorMaquina> {
                 child: FilledButton(
                   onPressed: _guardando ? null : _guardar,
                   child: _guardando
-                      ? const SizedBox(
-                          width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                      ? SizedBox(
+                          width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: FitColors.background))
                       : const Text('Guardar'),
                 ),
               ),

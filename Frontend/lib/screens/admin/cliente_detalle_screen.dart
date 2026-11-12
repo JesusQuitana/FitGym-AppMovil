@@ -44,7 +44,7 @@ class _ClienteDetalleScreenState extends State<ClienteDetalleScreen> {
           child: FilledButton.icon(
             onPressed: _registrarPago,
             style: FilledButton.styleFrom(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
               textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
             icon: const Icon(Icons.payments_outlined),
@@ -83,17 +83,17 @@ class _ClienteDetalleScreenState extends State<ClienteDetalleScreen> {
                     cliente.codigo,
                     style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: 10),
                   ),
-                  const Text('Código de acceso', style: TextStyle(color: FitColors.textMuted)),
+                  Text('Código de acceso', style: TextStyle(color: FitColors.textMuted)),
                 ],
               ),
             )
           else
-            const FitCard(
-              padding: EdgeInsets.all(14),
+            FitCard(
+              padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
                   Icon(Icons.lock_outline, color: FitColors.textMuted),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'El código de acceso es la contraseña del usuario y el servidor lo guarda cifrado. '
@@ -201,13 +201,13 @@ class _RenovacionSheetState extends State<_RenovacionSheet> {
             const SizedBox(height: 16),
             const Text('Registrar pago', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
-            Text(c.nombreCompleto, style: const TextStyle(color: FitColors.textMuted)),
+            Text(c.nombreCompleto, style: TextStyle(color: FitColors.textMuted)),
             const SizedBox(height: 18),
-            const Text('Membresía', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
+            Text('Membresía', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
             const SizedBox(height: 8),
             MembresiaSelector(value: _membresia, onChanged: (m) => setState(() => _membresia = m)),
             const SizedBox(height: 18),
-            const Text('Meses pagados', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
+            Text('Meses pagados', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -230,20 +230,20 @@ class _RenovacionSheetState extends State<_RenovacionSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Actual', style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
+                        Text('Actual', style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
                         Text(fechaCorta(c.fechaPago), style: const TextStyle(fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
-                  const Icon(Icons.arrow_forward, color: FitColors.textMuted),
+                  Icon(Icons.arrow_forward, color: FitColors.textMuted),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text('Nueva fecha de pago', style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
+                        Text('Nueva fecha de pago', style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
                         Text(
                           fechaCorta(_nuevaFecha),
-                          style: const TextStyle(fontWeight: FontWeight.w800, color: FitColors.ok, fontSize: 16),
+                          style: TextStyle(fontWeight: FontWeight.w800, color: FitColors.ok, fontSize: 16),
                         ),
                       ],
                     ),
@@ -252,8 +252,8 @@ class _RenovacionSheetState extends State<_RenovacionSheet> {
               ),
             ),
             if (c.estadoPago == EstadoPago.vencido)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'La membresía estaba vencida: el nuevo periodo empieza hoy.',
                   style: TextStyle(color: FitColors.warning, fontSize: 12),
@@ -265,10 +265,10 @@ class _RenovacionSheetState extends State<_RenovacionSheet> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: FitColors.danger.withAlpha(30),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(2),
                   border: Border.all(color: FitColors.danger.withAlpha(90)),
                 ),
-                child: Text(_error!, style: const TextStyle(color: FitColors.danger, fontSize: 13, height: 1.35)),
+                child: Text(_error!, style: TextStyle(color: FitColors.danger, fontSize: 13, height: 1.35)),
               ),
             const SizedBox(height: 18),
             SizedBox(
@@ -276,13 +276,13 @@ class _RenovacionSheetState extends State<_RenovacionSheet> {
               child: FilledButton(
                 onPressed: _guardando ? null : _confirmar,
                 style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
                 ),
                 child: _guardando
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: FitColors.background),
                       )
                     : const Text('Confirmar pago', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               ),

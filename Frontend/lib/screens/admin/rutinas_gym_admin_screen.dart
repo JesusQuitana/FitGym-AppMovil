@@ -87,7 +87,7 @@ class _RutinasGymAdminScreenState extends State<RutinasGymAdminScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _editar(),
         backgroundColor: FitColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: FitColors.onPrimary,
         icon: const Icon(Icons.add),
         label: const Text('Nueva rutina'),
       ),
@@ -98,7 +98,7 @@ class _RutinasGymAdminScreenState extends State<RutinasGymAdminScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
           children: [
-            const Text(
+            Text(
               'Las rutinas generales las ven todos los afiliados; las asignadas, solo esa persona.',
               style: TextStyle(color: FitColors.textMuted),
             ),
@@ -136,9 +136,9 @@ class _Tarjeta extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: FitColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(2),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(2),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 6, 14),
@@ -155,7 +155,7 @@ class _Tarjeta extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
-                    Text('${ejercicios.length} ejercicios', style: const TextStyle(color: FitColors.textMuted, fontSize: 13)),
+                    Text('${ejercicios.length} ejercicios', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
                     IconButton(tooltip: 'Eliminar', icon: const Icon(Icons.delete_outline), onPressed: onEliminar),
                   ],
                 ),
@@ -289,14 +289,14 @@ class _EditorRutinaGymState extends State<_EditorRutinaGym> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _agregar,
         backgroundColor: FitColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: FitColors.onPrimary,
         icon: const Icon(Icons.add),
         label: const Text('Agregar ejercicio'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [
-          const Text('Días', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
+          Text('Días', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
           const SizedBox(height: 8),
           DiasSemana(dias: _dias, onTap: (d) => setState(() => _dias.contains(d) ? _dias.remove(d) : _dias.add(d))),
           const SizedBox(height: 20),
@@ -323,7 +323,7 @@ class _EditorRutinaGymState extends State<_EditorRutinaGym> {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Ejercicios (${_ejercicios.length})', style: const TextStyle(color: FitColors.textMuted, fontSize: 13)),
+          Text('Ejercicios (${_ejercicios.length})', style: TextStyle(color: FitColors.textMuted, fontSize: 13)),
           const SizedBox(height: 8),
           if (_ejercicios.isEmpty)
             const VacioMensaje(icon: Icons.fitness_center, texto: 'Agrega ejercicios del catálogo del gimnasio.')
@@ -333,16 +333,16 @@ class _EditorRutinaGymState extends State<_EditorRutinaGym> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Material(
                   color: FitColors.surface,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(2),
                   child: ListTile(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
                     onTap: () async {
                       final e = await configurarEjercicio(context, _ejercicios[i], conPeso: false);
                       if (e != null) setState(() => _ejercicios[i] = e);
                     },
                     title: Text(_ejercicios[i].nombre, style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text('${_ejercicios[i].musculo} · ${_ejercicios[i].resumen}',
-                        style: const TextStyle(color: FitColors.textMuted)),
+                        style: TextStyle(color: FitColors.textMuted)),
                     trailing: IconButton(
                       tooltip: 'Quitar',
                       icon: const Icon(Icons.close),

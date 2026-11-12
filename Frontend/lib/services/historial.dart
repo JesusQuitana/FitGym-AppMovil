@@ -46,6 +46,21 @@ class Historial {
     return pesos;
   }
 
+  /// Fecha de la última vez que se hizo la rutina [rutinaId], o null si nunca.
+  static DateTime? ultimaVez(List<SesionEntrenamiento> sesiones, String rutinaId) {
+    DateTime? ultima;
+    for (final s in sesiones) {
+      if (s.rutinaId == rutinaId && (ultima == null || s.fecha.isAfter(ultima))) ultima = s.fecha;
+    }
+    return ultima;
+  }
+
+  /// Si la rutina [rutinaId] ya se hizo en la semana de [hoy] (desde el lunes).
+  static bool hechaEstaSemana(List<SesionEntrenamiento> sesiones, String rutinaId, {DateTime? hoy}) {
+    final ultima = ultimaVez(sesiones, rutinaId);
+    return ultima != null && !ultima.isBefore(inicioSemana(hoy ?? DateTime.now()));
+  }
+
   /// Lunes (00:00) de la semana de [d].
   static DateTime inicioSemana(DateTime d) => DateTime(d.year, d.month, d.day - (d.weekday - 1));
 

@@ -34,12 +34,12 @@ InputDecoration fitInput(String label, IconData icon, {String? hint}) => InputDe
       fillColor: FitColors.surfaceHigh,
       counterText: '',
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(2),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: FitColors.primary, width: 1.5),
+        borderRadius: BorderRadius.circular(2),
+        borderSide: BorderSide(color: FitColors.primary, width: 1.5),
       ),
     );
 
@@ -65,20 +65,13 @@ class FitLogo extends StatelessWidget {
         Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(size * 0.28),
-            gradient: const LinearGradient(
-              colors: [FitColors.primary, Color(0xFFFF8A3D)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Icon(Icons.fitness_center, color: Colors.white, size: size * 0.55),
+          color: FitColors.accent,
+          child: Icon(Icons.fitness_center, color: FitColors.carbon, size: size * 0.55),
         ),
         const SizedBox(height: 12),
         Text.rich(
-          const TextSpan(children: [
-            TextSpan(text: 'Fit'),
+          TextSpan(children: [
+            const TextSpan(text: 'Fit'),
             TextSpan(text: 'Gym', style: TextStyle(color: FitColors.primary)),
           ]),
           style: TextStyle(fontSize: size * 0.42, fontWeight: FontWeight.w900, letterSpacing: -0.5),
@@ -100,7 +93,7 @@ class MembresiaBadge extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12, vertical: compact ? 3 : 6),
       decoration: BoxDecoration(
         color: color.withAlpha(38),
-        borderRadius: BorderRadius.circular(99),
+        borderRadius: BorderRadius.circular(2),
         border: Border.all(color: color.withAlpha(110)),
       ),
       child: Row(
@@ -168,7 +161,7 @@ class PaseQr extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(2),
       ),
       child: QrImageView(
         data: data,
@@ -204,7 +197,7 @@ class InfoTile extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: FitColors.surfaceHigh,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(2),
             ),
             child: Icon(icon, size: 20, color: FitColors.textMuted),
           ),
@@ -213,7 +206,7 @@ class InfoTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(color: FitColors.textMuted, fontSize: 12)),
+                Text(label, style: TextStyle(color: FitColors.textMuted, fontSize: 12)),
                 const SizedBox(height: 2),
                 Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
               ],
@@ -238,8 +231,8 @@ class FitCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: FitColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withAlpha(13)),
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(color: FitColors.line),
       ),
       child: child,
     );
@@ -296,13 +289,13 @@ class _MembresiaOpcion extends StatelessWidget {
     final color = colorMembresia(membresia);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(2),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: selected ? color.withAlpha(40) : FitColors.surfaceHigh,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(2),
           border: Border.all(color: selected ? color : Colors.transparent, width: 1.5),
         ),
         child: Column(
@@ -313,10 +306,10 @@ class _MembresiaOpcion extends StatelessWidget {
               membresia.nombre,
               style: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: selected ? color : Colors.white,
+                color: selected ? color : FitColors.ink,
               ),
             ),
-            Text('Plan ${membresia.id}', style: const TextStyle(color: FitColors.textMuted, fontSize: 11)),
+            Text('Plan ${membresia.id}', style: TextStyle(color: FitColors.textMuted, fontSize: 11)),
           ],
         ),
       ),
@@ -330,12 +323,12 @@ class FitLogoInline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Text.rich(
+    return Text.rich(
       TextSpan(children: [
-        TextSpan(text: 'Fit'),
+        const TextSpan(text: 'Fit'),
         TextSpan(text: 'Gym', style: TextStyle(color: FitColors.primary)),
       ]),
-      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
+      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
     );
   }
 }

@@ -21,7 +21,7 @@ class BienvenidaScreen extends StatelessWidget {
             const SizedBox(height: 36),
             const Text('¿Cómo quieres usar FitGym?', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.2)),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Puedes tener las dos cosas: tu gimnasio y tu plan para entrenar en casa. '
               'Lo que no elijas ahora lo sumas después desde tu perfil.',
               style: TextStyle(color: FitColors.textMuted, height: 1.4),
@@ -69,9 +69,9 @@ class _Opcion extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
         color: FitColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(2),
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(2),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(18),
@@ -80,7 +80,7 @@ class _Opcion extends StatelessWidget {
                 Container(
                   width: 52,
                   height: 52,
-                  decoration: BoxDecoration(color: FitColors.primary.withAlpha(40), borderRadius: BorderRadius.circular(16)),
+                  decoration: BoxDecoration(color: FitColors.primary.withAlpha(40), borderRadius: BorderRadius.circular(2)),
                   child: Icon(icon, color: FitColors.primary, size: 28),
                 ),
                 const SizedBox(width: 14),
@@ -90,11 +90,11 @@ class _Opcion extends StatelessWidget {
                     children: [
                       Text(titulo, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
                       const SizedBox(height: 4),
-                      Text(detalle, style: const TextStyle(color: FitColors.textMuted, fontSize: 13, height: 1.35)),
+                      Text(detalle, style: TextStyle(color: FitColors.textMuted, fontSize: 13, height: 1.35)),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: FitColors.textMuted),
+                Icon(Icons.chevron_right, color: FitColors.textMuted),
               ],
             ),
           ),
