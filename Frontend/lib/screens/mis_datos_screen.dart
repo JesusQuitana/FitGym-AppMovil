@@ -5,6 +5,7 @@ import '../services/session.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'pase_screen.dart';
+import 'perfil_tab.dart';
 
 /// Datos personales y membresía del afiliado vinculado.
 class MisDatosScreen extends StatefulWidget {
@@ -91,6 +92,19 @@ class _DatosTab extends StatelessWidget {
           '¿Algún dato es incorrecto? Solicita la corrección en recepción.',
           textAlign: TextAlign.center,
           style: TextStyle(color: FitColors.textMuted, fontSize: 12),
+        ),
+        const SizedBox(height: 16),
+        Center(
+          child: TextButton.icon(
+            onPressed: () => confirmarEliminarCuentaYDatos(
+              context,
+              onCompletado: () {
+                if (context.mounted) Navigator.of(context).pop();
+              },
+            ),
+            icon: Icon(Icons.delete_forever_outlined, color: FitColors.danger, size: 18),
+            label: Text('Eliminar cuenta y datos', style: TextStyle(color: FitColors.danger)),
+          ),
         ),
       ],
     );

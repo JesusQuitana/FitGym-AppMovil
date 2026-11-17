@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eliminación de Cuenta y Datos — FitGym</title>
+  <style>
+    :root {
+      --bg: #111111;
+      --surface: #1A1A1A;
+      --text: #F5F5F0;
+      --muted: #A3A39E;
+      --accent: #FF3B2F;
+      --line: #2C2C2C;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    header {
+      border-bottom: 2px solid var(--accent);
+      padding: 28px 20px;
+      background: var(--surface);
+    }
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 24px 20px 64px;
+    }
+    .brand {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-style: italic;
+    }
+    .brand span { color: var(--accent); }
+    h1 {
+      font-size: 25px;
+      margin: 8px 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    h2 {
+      font-size: 18px;
+      margin-top: 28px;
+      margin-bottom: 8px;
+      color: var(--text);
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    p, li { color: #DCDCD6; font-size: 15px; }
+    .meta { color: var(--muted); font-size: 13px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      padding: 20px;
+      margin: 20px 0;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 14px;
+      background: #111111;
+      border: 1px solid var(--line);
+      color: var(--text);
+      font-size: 15px;
+    }
+    button {
+      background: var(--accent);
+      color: #FFFFFF;
+      border: none;
+      padding: 13px 22px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.92; }
+    a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+    .notice {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px solid #2EAD67;
+      background: rgba(46, 173, 103, 0.12);
+      color: #A7F3D0;
+      font-size: 14px;
+    }
+    footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container" style="padding-top:0;padding-bottom:0;">
+      <div class="brand">Fit<span>Gym</span></div>
+      <h1>Solicitud de Eliminación de Cuenta y Datos</h1>
+      <div class="meta">Aplicación móvil FitGym (ID de paquete: <code>com.fit.gym.ve</code>)</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p>
+      En cumplimiento con las políticas de seguridad de datos de Google Play, los usuarios de la aplicación móvil <strong>FitGym</strong> (<code>com.fit.gym.ve</code>) pueden eliminar sus datos locales directamente desde la aplicación o solicitar la eliminación total de su cuenta de afiliado y sus datos personales sin necesidad de tener la aplicación instalada.
+    </p>
+
+    <h2>Opción 1: Eliminación inmediata desde la aplicación FitGym</h2>
+    <ol>
+      <li>Abre la aplicación <strong>FitGym</strong> en tu teléfono.</li>
+      <li>Dirígete a la pestaña <strong>Perfil</strong> en la barra inferior.</li>
+      <li>Toca la opción <strong>Eliminar cuenta y datos</strong> (también disponible dentro de <em>Mis datos y membresía</em>).</li>
+      <li>Confirma con el botón <strong>Eliminar mis datos</strong>.</li>
+    </ol>
+
+    <h2>Opción 2: Solicitud web (sin abrir la aplicación)</h2>
+    <p>
+      Si ya desinstalaste la aplicación o deseas que se elimine definitivamente tu usuario y ficha de afiliado del servidor de tu gimnasio, completa el siguiente formulario para enviar la solicitud de baja:
+    </p>
+
+    <div class="card">
+      <form id="deleteForm" onsubmit="enviarSolicitud(event)">
+        <label for="correo">Correo electrónico registrado en FitGym *</label>
+        <input type="email" id="correo" required placeholder="ejemplo@correo.com" />
+
+        <label for="nombre">Nombre y Apellido</label>
+        <input type="text" id="nombre" placeholder="Tu nombre completo" />
+
+        <label for="motivo">Detalle adicional (opcional)</label>
+        <textarea id="motivo" rows="3" placeholder="Solicito la eliminación definitiva de mi cuenta de usuario y datos personales asociados en FitGym."></textarea>
+
+        <button type="submit">Enviar solicitud de eliminación</button>
+        <div id="confirmMsg" class="notice">
+          Se ha preparado tu solicitud de eliminación. Si tu cliente de correo no se abrió automáticamente, envía un correo a <strong>eddylokoi9874coello@gmail.com</strong> indicando tu correo registrado.
+        </div>
+      </form>
+    </div>
+
+    <h2>¿Qué datos se eliminan y cuáles son los plazos de retención?</h2>
+    <ul>
+      <li><strong>Datos eliminados inmediatamente en el dispositivo:</strong> Sesión activa, código de acceso y secreto TOTP cifrados en Android Keystore, rutinas propias creadas por el usuario, plan personal e historial de entrenamientos.</li>
+      <li><strong>Datos eliminados en el servidor del gimnasio tras la solicitud:</strong> Cuenta de acceso (tabla <code>user</code>), ficha personal de afiliado (nombre, apellido, correo electrónico, teléfono y fecha de pago en la tabla <code>cliente</code>) y rutinas personalizadas asignadas al cliente (tabla <code>rutina</code>).</li>
+      <li><strong>Plazo de procesamiento:</strong> Las solicitudes de eliminación en el servidor se procesan en un plazo máximo de <strong>7 días hábiles</strong> tras verificar la titularidad del correo electrónico, sin conservar copias adicionales tras la baja.</li>
+    </ul>
+
+    <p style="margin-top: 24px;">
+      ← Volver a la <a href="privacidad.html">Política de Privacidad de FitGym</a>
+    </p>
+
+    <footer>
+      © 2026 FitGym (<code>com.fit.gym.ve</code>). Soporte: <a href="mailto:eddylokoi9874coello@gmail.com">eddylokoi9874coello@gmail.com</a>
+    </footer>
+  </main>
+
+  <script>
+    function enviarSolicitud(e) {
+      e.preventDefault();
+      var correo = document.getElementById('correo').value.trim();
+      var nombre = document.getElementById('nombre').value.trim();
+      var motivo = document.getElementById('motivo').value.trim() || 'Solicito la eliminación definitiva de mi cuenta y datos personales en FitGym (com.fit.gym.ve).';
+      var subject = encodeURIComponent('Solicitud de eliminación de cuenta FitGym - ' + correo);
+      var body = encodeURIComponent(
+        'Aplicación: FitGym (com.fit.gym.ve)\n' +
+        'Correo registrado: ' + correo + '\n' +
+        'Nombre: ' + nombre + '\n\n' +
+        'Mensaje:\n' + motivo
+      );
+      document.getElementById('confirmMsg').style.display = 'block';
+      window.location.href = 'mailto:eddylokoi9874coello@gmail.com?subject=' + subject + '&body=' + body;
+    }
+  </script>
+</body>
+</html>

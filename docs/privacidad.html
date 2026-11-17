@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidad — FitGym</title>
+  <style>
+    :root {
+      --bg: #111111;
+      --surface: #1A1A1A;
+      --text: #F5F5F0;
+      --muted: #A3A39E;
+      --accent: #FF3B2F;
+      --line: #2C2C2C;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    header {
+      border-bottom: 2px solid var(--accent);
+      padding: 28px 20px;
+      background: var(--surface);
+    }
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 24px 20px 64px;
+    }
+    .brand {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-style: italic;
+    }
+    .brand span { color: var(--accent); }
+    h1 {
+      font-size: 26px;
+      margin: 8px 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    h2 {
+      font-size: 18px;
+      margin-top: 28px;
+      margin-bottom: 8px;
+      color: var(--text);
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    p, li { color: #DCDCD6; font-size: 15px; }
+    .meta { color: var(--muted); font-size: 13px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      padding: 18px 20px;
+      margin: 20px 0;
+    }
+    a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+    footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container" style="padding-top:0;padding-bottom:0;">
+      <div class="brand">Fit<span>Gym</span></div>
+      <h1>Política de Privacidad</h1>
+      <div class="meta">Aplicación móvil FitGym (ID de paquete: <code>com.fit.gym.ve</code>) · Última actualización: Noviembre 2026</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p>
+      <strong>FitGym</strong> respeta la privacidad de sus usuarios y se compromete a proteger los datos personales procesados a través de la aplicación móvil <strong>FitGym</strong> (<code>com.fit.gym.ve</code>). En esta Política de Privacidad se detalla qué información se recopila, cómo se utiliza, cómo se protege y cómo el usuario puede ejercer sus derechos de acceso y eliminación.
+    </p>
+
+    <h2>1. Información que recopilamos y su finalidad</h2>
+    <p>FitGym puede utilizarse de dos maneras: en modo de entrenamiento personal (sin necesidad de cuenta) o vinculando la cuenta de afiliado de un gimnasio asociado.</p>
+    <ul>
+      <li><strong>Datos de perfil y membresía (solo si vinculas un gimnasio):</strong> Nombre, apellido, dirección de correo electrónico, número de teléfono, categoría de membresía y fecha de vencimiento de pago. Estos datos son registrados previamente en recepción por tu gimnasio con la única finalidad de identificar al afiliado, validar la vigencia de su membresía en la entrada y asignarle rutinas de entrenamiento.</li>
+      <li><strong>Datos de entrenamiento local:</strong> Rutinas creadas por el usuario, plan personal (objetivo, nivel, días por semana) e historial de sesiones completadas. Estos datos se almacenan localmente en el teléfono del usuario.</li>
+    </ul>
+
+    <h2>2. Permisos del dispositivo</h2>
+    <ul>
+      <li><strong>Cámara (<code>android.permission.CAMERA</code>):</strong> Se utiliza única y exclusivamente en el módulo de recepción del gimnasio para leer los códigos QR de acceso de los afiliados. FitGym <strong>no</strong> toma fotografías, <strong>no</strong> graba videos ni almacena ni transmite imágenes de la cámara a ningún servidor.</li>
+      <li><strong>Notificaciones (<code>android.permission.POST_NOTIFICATIONS</code>):</strong> Se utiliza únicamente para enviar recordatorios locales en el teléfono cuando la fecha de pago de la membresía está próxima a vencer.</li>
+      <li><strong>Internet (<code>android.permission.INTERNET</code>):</strong> Se emplea para sincronizar los datos de membresía y rutinas con el servidor del gimnasio y descargar las ilustraciones/animaciones demostrativas de los ejercicios.</li>
+    </ul>
+
+    <h2>3. Seguridad y almacenamiento de los datos</h2>
+    <ul>
+      <li>Las credenciales sensibles del afiliado (código de acceso y clave secreta TOTP para la generación del código QR dinámico) se almacenan de forma cifrada en el dispositivo mediante <strong>Android Keystore</strong> (<code>EncryptedSharedPreferences</code> / <code>FlutterSecureStorage</code>).</li>
+      <li>FitGym <strong>no vende, alquila ni comparte</strong> datos personales con terceros, redes publicitarias ni corredores de datos.</li>
+    </ul>
+
+    <h2>4. Retención y eliminación de cuenta y datos</h2>
+    <p>
+      El usuario conserva el control total sobre su información y puede eliminar sus datos en cualquier momento:
+    </p>
+    <ul>
+      <li><strong>Desde la aplicación:</strong> Entrando en la pestaña <strong>Perfil → Eliminar cuenta y datos</strong> (o en <em>Perfil → Mis datos y membresía → Eliminar cuenta y datos</em>). Esta acción elimina de forma inmediata la sesión vinculada, las credenciales cifradas, las rutinas propias, el plan personal y el historial de entrenamientos almacenados en el teléfono.</li>
+      <li><strong>Desde la web (sin abrir la aplicación):</strong> Puedes consultar el procedimiento completo y solicitar la baja definitiva de tu cuenta y ficha de afiliado en nuestra página dedicada: <a href="eliminar-cuenta.html">Solicitud de eliminación de cuenta y datos</a>.</li>
+    </ul>
+
+    <div class="card">
+      <strong>Acceso directo a baja de cuenta:</strong><br />
+      ¿Deseas eliminar tu cuenta y todos tus datos asociados? Visita <a href="eliminar-cuenta.html">Solicitar eliminación de cuenta y datos de FitGym</a>.
+    </div>
+
+    <h2>5. Contacto</h2>
+    <p>
+      Para cualquier consulta sobre esta Política de Privacidad o sobre el tratamiento de tus datos personales en FitGym, puedes comunicarte con la administración de tu gimnasio afiliado o escribir al soporte técnico del proyecto a través de <a href="mailto:eddylokoi9874coello@gmail.com">eddylokoi9874coello@gmail.com</a>.
+    </p>
+
+    <footer>
+      © 2026 FitGym (<code>com.fit.gym.ve</code>). Textos y demostraciones de ejercicios bajo licencia abierta (wger.de CC-BY-SA · ExerciseDB).
+    </footer>
+  </main>
+</body>
+</html>

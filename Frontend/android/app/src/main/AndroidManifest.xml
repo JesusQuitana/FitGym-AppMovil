@@ -1,7 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Necesario para consumir la API REST de Spring Boot -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Reprogramar los recordatorios de pago después de reiniciar el teléfono -->
+    <!-- Escáner de pases QR en recepción (mobile_scanner) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <!-- Recordatorios de pago en Android 13+ (API 33+) y tras reiniciar el teléfono -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application

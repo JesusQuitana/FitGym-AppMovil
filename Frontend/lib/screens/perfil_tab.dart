@@ -116,11 +116,118 @@ class _PerfilTabState extends State<PerfilTab> {
         const _SelectorTema(),
         const SizedBox(height: 18),
         const _Seccion('Más'),
+        _Accion(Icons.privacy_tip_outlined, 'Política de privacidad', 'Uso de datos personales y cámara',
+            () => mostrarPoliticaPrivacidad(context)),
+        _Accion(Icons.delete_forever_outlined, 'Eliminar cuenta y datos', 'Borrar mis datos de este teléfono y solicitar baja',
+            () => confirmarEliminarCuentaYDatos(context, onCompletado: () {
+                  if (mounted) setState(() {});
+                }),
+            color: FitColors.danger),
         _Accion(Icons.admin_panel_settings_outlined, 'Acceso de recepción', 'Solo para el personal del gimnasio',
             () => abrirAccesoRecepcion(context)),
         _Accion(Icons.settings_outlined, 'Ajustes de conexión', 'Servidor y modo demo',
             () => widget.abrir(const SettingsScreen())),
       ],
+    );
+  }
+}
+
+/// Muestra la Política de Privacidad de FitGym dentro de la app (requisito de
+/// Google Play para apps con cuentas de usuario y permiso de cámara).
+Future<void> mostrarPoliticaPrivacidad(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: FitColors.surface,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (_) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.78,
+      maxChildSize: 0.92,
+      builder: (context, scroll) => ListView(
+        controller: scroll,
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+        children: [
+          const Text('Política de privacidad', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 14),
+          Text(
+            'FitGym respeta tu privacidad y protege tus datos personales. '
+            'Esta política describe qué información maneja la aplicación y con qué finalidad:',
+            style: TextStyle(color: FitColors.textMuted, height: 1.45),
+          ),
+          const SizedBox(height: 16),
+          const Text('1. Datos personales y de membresía', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          const Text(
+            'Si vinculas tu gimnasio, la app muestra tu nombre, apellido, correo electrónico, '
+            'teléfono y fecha de vencimiento de pago registrados por la recepción de tu gimnasio, '
+            'con el único fin de generar tu pase de entrada QR y mostrarte las rutinas asignadas.',
+            style: TextStyle(height: 1.45),
+          ),
+          const SizedBox(height: 14),
+          const Text('2. Uso de la cámara (android.permission.CAMERA)', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          const Text(
+            'El permiso de cámara se utiliza exclusivamente en el módulo de recepción del gimnasio '
+            'para escanear los códigos QR de acceso de los afiliados. No se graban videos ni se '
+            'almacenan ni envían fotografías.',
+            style: TextStyle(height: 1.45),
+          ),
+          const SizedBox(height: 14),
+          const Text('3. Almacenamiento seguro y entrenamiento local', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          const Text(
+            'Las credenciales de acceso y el secreto TOTP de tu pase dinámico se guardan cifrados '
+            'en el teléfono mediante Android Keystore. Tus rutinas personales, plan e historial de '
+            'entrenamiento se guardan localmente en tu dispositivo y no se comparten con terceros.',
+            style: TextStyle(height: 1.45),
+          ),
+          const SizedBox(height: 14),
+          const Text('4. Eliminación de cuenta y datos', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          const Text(
+            'Puedes borrar en cualquier momento todos tus datos locales, rutinas, historial y sesión '
+            'desde Perfil → Eliminar cuenta y datos, así como solicitar en recepción la eliminación '
+            'definitiva de tu ficha de afiliado en el servidor del gimnasio.',
+            style: TextStyle(height: 1.45),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Diálogo de confirmación para borrar todos los datos del dispositivo y
+/// desvincular/solicitar la baja de la cuenta (requisito de Google Play).
+Future<void> confirmarEliminarCuentaYDatos(BuildContext context, {VoidCallback? onCompletado}) async {
+  final confirmar = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: FitColors.surface,
+      title: const Text('Eliminar cuenta y datos'),
+      content: const Text(
+        'Esta acción borrará de este teléfono tu sesión vinculada, credenciales, '
+        'rutinas propias, plan personal e historial de entrenamientos.\n\n'
+        'Si además deseas dar de baja tu ficha de afiliado en la base de datos de tu gimnasio, '
+        'solicítalo en recepción presentando tu correo registrado.',
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: FitColors.danger),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Eliminar mis datos'),
+        ),
+      ],
+    ),
+  );
+  if (confirmar != true) return;
+  await Recordatorios.cancelarPagos();
+  await Session.instance.eliminarDatosLocales();
+  onCompletado?.call();
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Se eliminaron tus datos y credenciales de este dispositivo.')),
     );
   }
 }

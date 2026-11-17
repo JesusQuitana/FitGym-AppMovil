@@ -171,6 +171,25 @@ class Session {
     await _borrarSeguro(_kTotp);
   }
 
+  /// Borra todos los datos personales, credenciales, rutinas propias,
+  /// historial y perfil de entrenamiento almacenados en este dispositivo
+  /// (cumplimiento de la política de eliminación de datos de Google Play).
+  Future<void> eliminarDatosLocales() async {
+    await logout();
+    cerrarAdmin();
+    final clavesBorrar = _prefs.getKeys().where(
+          (k) =>
+              k == 'rutinas_personal' ||
+              k == 'historial_personal' ||
+              k == 'plan_personal' ||
+              k == _kRelojOffset ||
+              k.startsWith('cache_rutinas_gym_'),
+        );
+    for (final k in clavesBorrar.toList()) {
+      await _prefs.remove(k);
+    }
+  }
+
   Future<String?> _leerSeguro(String key) async {
     try {
       return await _seguro.read(key: key);

@@ -310,6 +310,34 @@ void main() {
     expect((await SharedPreferences.getInstance()).getString('tema'), 'dark');
   });
 
+  testWidgets('En Perfil se muestra la Política de privacidad y se pueden eliminar los datos locales', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'rutinas_personal': '[{"id":"r1","nombre":"Casa","dias":[1],"ejercicios":[]}]',
+      'historial_personal': '[{"fecha":"2026-10-20T10:00:00.000","rutinaId":"r1","rutinaNombre":"Casa","segundos":60,"ejercicios":[]}]',
+      'plan_personal': '{"objetivo":"salud","nivel":"principiante","dias":3,"minutos":30,"lugar":"casaSinEquipo","lesiones":[]}',
+    });
+    FlutterSecureStorage.setMockInitialValues({'codigo': '1234', 'totp_secret': 'ABC'});
+    await Session.instance.load();
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: PerfilTab(perfil: null, abrir: (_) async {}, onPlantillas: () {})),
+    ));
+
+    await tester.scrollUntilVisible(find.text('Política de privacidad'), 200);
+    await tester.tap(find.text('Política de privacidad'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('2. Uso de la cámara'), findsOneWidget);
+    Navigator.of(tester.element(find.textContaining('2. Uso de la cámara'))).pop();
+    await tester.pumpAndSettle();
+
+    await Session.instance.eliminarDatosLocales();
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.containsKey('rutinas_personal'), isFalse);
+    expect(prefs.containsKey('historial_personal'), isFalse);
+    expect(prefs.containsKey('plan_personal'), isFalse);
+    expect(Session.instance.cliente, isNull);
+  });
+
   test('Días escritos y duración estimada de una rutina', () {
     expect(Rutina.textoDiasCorto({1, 4}), 'Lun y Jue');
     expect(Rutina.textoDiasCorto({5, 1, 3}), 'Lun, Mié y Vie');

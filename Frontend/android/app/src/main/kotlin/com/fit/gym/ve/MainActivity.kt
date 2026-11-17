@@ -1,4 +1,4 @@
-package com.fitgym.fitgym
+package com.fit.gym.ve
 
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
